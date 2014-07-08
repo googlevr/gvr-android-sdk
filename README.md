@@ -1,4 +1,4 @@
 Google Cardboard
 ================
 
-Please see <g.co/cardboard> for more information.
+Please see <http://g.co/cardboard> for more information.
