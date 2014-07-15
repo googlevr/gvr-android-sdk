@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.google.vrtoolkit.cardboard.samples.treasurehunt" >
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.google.vrtoolkit.cardboard.samples.treasurehunt" >
 
     <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
-    <uses-sdk android:minSdkVersion="14"/>
+    <uses-sdk android:minSdkVersion="14"
+        tools:node="replace"
+        />
     <uses-feature android:glEsVersion="0x00020000" android:required="true" />
 
     <application
