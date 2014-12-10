@@ -16,15 +16,19 @@
 
 package com.google.vrtoolkit.cardboard.samples.treasurehunt;
 
+import com.google.vrtoolkit.cardboard.CardboardActivity;
+import com.google.vrtoolkit.cardboard.CardboardView;
+import com.google.vrtoolkit.cardboard.Eye;
+import com.google.vrtoolkit.cardboard.HeadTransform;
+import com.google.vrtoolkit.cardboard.Viewport;
+
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
-import com.google.vrtoolkit.cardboard.*;
 
-import javax.microedition.khronos.egl.EGLConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,6 +37,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
+import javax.microedition.khronos.egl.EGLConfig;
+
 /**
  * A Cardboard sample application.
  */
@@ -40,19 +46,23 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
     private static final String TAG = "MainActivity";
 
+    private static final float Z_NEAR = 0.1f;
+    private static final float Z_FAR = 100.0f;
+
     private static final float CAMERA_Z = 0.01f;
     private static final float TIME_DELTA = 0.3f;
 
     private static final float YAW_LIMIT = 0.12f;
     private static final float PITCH_LIMIT = 0.12f;
 
-    // We keep the light always position just above the user.
-    private final float[] mLightPosInWorldSpace = new float[] {0.0f, 2.0f, 0.0f, 1.0f};
-    private final float[] mLightPosInEyeSpace = new float[4];
-
     private static final int COORDS_PER_VERTEX = 3;
 
-    private final WorldLayoutData DATA = new WorldLayoutData();
+    private static final WorldLayoutData DATA = new WorldLayoutData();
+
+    // We keep the light always position just above the user.
+    private static final float[] LIGHT_POS_IN_WORLD_SPACE = new float[] { 0.0f, 2.0f, 0.0f, 1.0f };
+
+    private final float[] mLightPosInEyeSpace = new float[4];
 
     private FloatBuffer mFloorVertices;
     private FloatBuffer mFloorColors;
@@ -63,15 +73,24 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private FloatBuffer mCubeFoundColors;
     private FloatBuffer mCubeNormals;
 
-    private int mGlProgram;
-    private int mPositionParam;
-    private int mNormalParam;
-    private int mColorParam;
-    private int mModelViewProjectionParam;
-    private int mLightPosParam;
-    private int mModelViewParam;
-    private int mModelParam;
-    private int mIsFloorParam;
+    private int mCubeProgram;
+    private int mFloorProgram;
+
+    private int mCubePositionParam;
+    private int mCubeNormalParam;
+    private int mCubeColorParam;
+    private int mCubeModelParam;
+    private int mCubeModelViewParam;
+    private int mCubeModelViewProjectionParam;
+    private int mCubeLightPosParam;
+
+    private int mFloorPositionParam;
+    private int mFloorNormalParam;
+    private int mFloorColorParam;
+    private int mFloorModelParam;
+    private int mFloorModelViewParam;
+    private int mFloorModelViewProjectionParam;
+    private int mFloorLightPosParam;
 
     private float[] mModelCube;
     private float[] mCamera;
@@ -79,7 +98,6 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private float[] mHeadView;
     private float[] mModelViewProjection;
     private float[] mModelView;
-
     private float[] mModelFloor;
 
     private int mScore = 0;
@@ -87,14 +105,14 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     private float mFloorDepth = 20f;
 
     private Vibrator mVibrator;
-
     private CardboardOverlayView mOverlayView;
 
     /**
-     * Converts a raw text file, saved as a resource, into an OpenGL ES shader
+     * Converts a raw text file, saved as a resource, into an OpenGL ES shader.
+     *
      * @param type The type of shader we will be creating.
      * @param resId The resource ID of the raw text file about to be turned into a shader.
-     * @return
+     * @return The shader object handler.
      */
     private int loadGLShader(int type, int resId) {
         String code = readRawTextFile(resId);
@@ -122,20 +140,20 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
     /**
      * Checks if we've had an error inside of OpenGL ES, and if so what that error is.
-     * @param func
+     *
+     * @param label Label to report in case of error.
      */
-    private static void checkGLError(String func) {
+    private static void checkGLError(String label) {
         int error;
         while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
-            Log.e(TAG, func + ": glError " + error);
-            throw new RuntimeException(func + ": glError " + error);
+            Log.e(TAG, label + ": glError " + error);
+            throw new RuntimeException(label + ": glError " + error);
         }
     }
 
     /**
      * Sets the view to our CardboardView and initializes the transformation matrices we will use
      * to render our scene.
-     * @param savedInstanceState
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -171,14 +189,17 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     }
 
     /**
-     * Creates the buffers we use to store information about the 3D world. OpenGL doesn't use Java
-     * arrays, but rather needs data in a format it can understand. Hence we use ByteBuffers.
+     * Creates the buffers we use to store information about the 3D world.
+     *
+     * OpenGL doesn't use Java arrays, but rather needs data in a format it can understand.
+     * Hence we use ByteBuffers.
+     *
      * @param config The EGL configuration used when creating the surface.
      */
     @Override
     public void onSurfaceCreated(EGLConfig config) {
         Log.i(TAG, "onSurfaceCreated");
-        GLES20.glClearColor(0.1f, 0.1f, 0.1f, 0.5f); // Dark background so text shows up well
+        GLES20.glClearColor(0.1f, 0.1f, 0.1f, 0.5f); // Dark background so text shows up well.
 
         ByteBuffer bbVertices = ByteBuffer.allocateDirect(DATA.CUBE_COORDS.length * 4);
         bbVertices.order(ByteOrder.nativeOrder());
@@ -225,28 +246,71 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
         int vertexShader = loadGLShader(GLES20.GL_VERTEX_SHADER, R.raw.light_vertex);
         int gridShader = loadGLShader(GLES20.GL_FRAGMENT_SHADER, R.raw.grid_fragment);
+        int passthroughShader = loadGLShader(GLES20.GL_FRAGMENT_SHADER, R.raw.passthrough_fragment);
 
-        mGlProgram = GLES20.glCreateProgram();
-        GLES20.glAttachShader(mGlProgram, vertexShader);
-        GLES20.glAttachShader(mGlProgram, gridShader);
-        GLES20.glLinkProgram(mGlProgram);
+        mCubeProgram = GLES20.glCreateProgram();
+        GLES20.glAttachShader(mCubeProgram, vertexShader);
+        GLES20.glAttachShader(mCubeProgram, passthroughShader);
+        GLES20.glLinkProgram(mCubeProgram);
+        GLES20.glUseProgram(mCubeProgram);
+
+        checkGLError("Cube program");
+
+        mCubePositionParam = GLES20.glGetAttribLocation(mCubeProgram, "a_Position");
+        mCubeNormalParam = GLES20.glGetAttribLocation(mCubeProgram, "a_Normal");
+        mCubeColorParam = GLES20.glGetAttribLocation(mCubeProgram, "a_Color");
+
+        mCubeModelParam = GLES20.glGetUniformLocation(mCubeProgram, "u_Model");
+        mCubeModelViewParam = GLES20.glGetUniformLocation(mCubeProgram, "u_MVMatrix");
+        mCubeModelViewProjectionParam = GLES20.glGetUniformLocation(mCubeProgram, "u_MVP");
+        mCubeLightPosParam = GLES20.glGetUniformLocation(mCubeProgram, "u_LightPos");
+
+        GLES20.glEnableVertexAttribArray(mCubePositionParam);
+        GLES20.glEnableVertexAttribArray(mCubeNormalParam);
+        GLES20.glEnableVertexAttribArray(mCubeColorParam);
+
+        checkGLError("Cube program params");
+
+        mFloorProgram = GLES20.glCreateProgram();
+        GLES20.glAttachShader(mFloorProgram, vertexShader);
+        GLES20.glAttachShader(mFloorProgram, gridShader);
+        GLES20.glLinkProgram(mFloorProgram);
+        GLES20.glUseProgram(mFloorProgram);
+
+        checkGLError("Floor program");
+
+        mFloorModelParam = GLES20.glGetUniformLocation(mFloorProgram, "u_Model");
+        mFloorModelViewParam = GLES20.glGetUniformLocation(mFloorProgram, "u_MVMatrix");
+        mFloorModelViewProjectionParam = GLES20.glGetUniformLocation(mFloorProgram, "u_MVP");
+        mFloorLightPosParam = GLES20.glGetUniformLocation(mFloorProgram, "u_LightPos");
+
+        mFloorPositionParam = GLES20.glGetAttribLocation(mFloorProgram, "a_Position");
+        mFloorNormalParam = GLES20.glGetAttribLocation(mFloorProgram, "a_Normal");
+        mFloorColorParam = GLES20.glGetAttribLocation(mFloorProgram, "a_Color");
+
+        GLES20.glEnableVertexAttribArray(mFloorPositionParam);
+        GLES20.glEnableVertexAttribArray(mFloorNormalParam);
+        GLES20.glEnableVertexAttribArray(mFloorColorParam);
+
+        checkGLError("Floor program params");
 
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
-        // Object first appears directly in front of user
+        // Object first appears directly in front of user.
         Matrix.setIdentityM(mModelCube, 0);
         Matrix.translateM(mModelCube, 0, 0, 0, -mObjectDistance);
 
         Matrix.setIdentityM(mModelFloor, 0);
-        Matrix.translateM(mModelFloor, 0, 0, -mFloorDepth, 0); // Floor appears below user
+        Matrix.translateM(mModelFloor, 0, 0, -mFloorDepth, 0); // Floor appears below user.
 
         checkGLError("onSurfaceCreated");
     }
 
     /**
      * Converts a raw text file into a string.
+     *
      * @param resId The resource ID of the raw text file about to be turned into a shader.
-     * @return
+     * @return The context of the text file, or null in case of error.
      */
     private String readRawTextFile(int resId) {
         InputStream inputStream = getResources().openRawResource(resId);
@@ -262,23 +326,16 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return "";
+        return null;
     }
 
     /**
      * Prepares OpenGL ES before we draw a frame.
+     *
      * @param headTransform The head transformation in the new frame.
      */
     @Override
     public void onNewFrame(HeadTransform headTransform) {
-        GLES20.glUseProgram(mGlProgram);
-
-        mModelViewProjectionParam = GLES20.glGetUniformLocation(mGlProgram, "u_MVP");
-        mLightPosParam = GLES20.glGetUniformLocation(mGlProgram, "u_LightPos");
-        mModelViewParam = GLES20.glGetUniformLocation(mGlProgram, "u_MVMatrix");
-        mModelParam = GLES20.glGetUniformLocation(mGlProgram, "u_Model");
-        mIsFloorParam = GLES20.glGetUniformLocation(mGlProgram, "u_IsFloor");
-
         // Build the Model part of the ModelView matrix.
         Matrix.rotateM(mModelCube, 0, TIME_DELTA, 0.5f, 0.5f, 1.0f);
 
@@ -291,42 +348,34 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     }
 
     /**
-     * Draws a frame for an eye. The transformation for that eye (from the camera) is passed in as
-     * a parameter.
-     * @param transform The transformations to apply to render this eye.
+     * Draws a frame for an eye.
+     *
+     * @param eye The eye to render. Includes all required transformations.
      */
     @Override
-    public void onDrawEye(EyeTransform transform) {
+    public void onDrawEye(Eye eye) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-        mPositionParam = GLES20.glGetAttribLocation(mGlProgram, "a_Position");
-        mNormalParam = GLES20.glGetAttribLocation(mGlProgram, "a_Normal");
-        mColorParam = GLES20.glGetAttribLocation(mGlProgram, "a_Color");
-
-        GLES20.glEnableVertexAttribArray(mPositionParam);
-        GLES20.glEnableVertexAttribArray(mNormalParam);
-        GLES20.glEnableVertexAttribArray(mColorParam);
         checkGLError("mColorParam");
 
         // Apply the eye transformation to the camera.
-        Matrix.multiplyMM(mView, 0, transform.getEyeView(), 0, mCamera, 0);
+        Matrix.multiplyMM(mView, 0, eye.getEyeView(), 0, mCamera, 0);
 
         // Set the position of the light
-        Matrix.multiplyMV(mLightPosInEyeSpace, 0, mView, 0, mLightPosInWorldSpace, 0);
-        GLES20.glUniform3f(mLightPosParam, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1],
-                mLightPosInEyeSpace[2]);
+        Matrix.multiplyMV(mLightPosInEyeSpace, 0, mView, 0, LIGHT_POS_IN_WORLD_SPACE, 0);
 
         // Build the ModelView and ModelViewProjection matrices
         // for calculating cube position and light.
+        float[] perspective = eye.getPerspective(Z_NEAR, Z_FAR);
         Matrix.multiplyMM(mModelView, 0, mView, 0, mModelCube, 0);
-        Matrix.multiplyMM(mModelViewProjection, 0, transform.getPerspective(), 0, mModelView, 0);
+        Matrix.multiplyMM(mModelViewProjection, 0, perspective, 0, mModelView, 0);
         drawCube();
 
         // Set mModelView for the floor, so we draw floor in the correct location
         Matrix.multiplyMM(mModelView, 0, mView, 0, mModelFloor, 0);
-        Matrix.multiplyMM(mModelViewProjection, 0, transform.getPerspective(), 0,
+        Matrix.multiplyMM(mModelViewProjection, 0, perspective, 0,
             mModelView, 0);
-        drawFloor(transform.getPerspective());
+        drawFloor();
     }
 
     @Override
@@ -334,68 +383,66 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     }
 
     /**
-     * Draw the cube. We've set all of our transformation matrices. Now we simply pass them into
-     * the shader.
+     * Draw the cube.
+     *
+     * We've set all of our transformation matrices. Now we simply pass them into the shader.
      */
     public void drawCube() {
-        // This is not the floor!
-        GLES20.glUniform1f(mIsFloorParam, 0f);
+        GLES20.glUseProgram(mCubeProgram);
+
+        GLES20.glUniform3fv(mCubeLightPosParam, 1, mLightPosInEyeSpace, 0);
 
         // Set the Model in the shader, used to calculate lighting
-        GLES20.glUniformMatrix4fv(mModelParam, 1, false, mModelCube, 0);
+        GLES20.glUniformMatrix4fv(mCubeModelParam, 1, false, mModelCube, 0);
 
         // Set the ModelView in the shader, used to calculate lighting
-        GLES20.glUniformMatrix4fv(mModelViewParam, 1, false, mModelView, 0);
+        GLES20.glUniformMatrix4fv(mCubeModelViewParam, 1, false, mModelView, 0);
 
         // Set the position of the cube
-        GLES20.glVertexAttribPointer(mPositionParam, COORDS_PER_VERTEX, GLES20.GL_FLOAT,
+        GLES20.glVertexAttribPointer(mCubePositionParam, COORDS_PER_VERTEX, GLES20.GL_FLOAT,
                 false, 0, mCubeVertices);
 
         // Set the ModelViewProjection matrix in the shader.
-        GLES20.glUniformMatrix4fv(mModelViewProjectionParam, 1, false, mModelViewProjection, 0);
+        GLES20.glUniformMatrix4fv(mCubeModelViewProjectionParam, 1, false, mModelViewProjection, 0);
 
         // Set the normal positions of the cube, again for shading
-        GLES20.glVertexAttribPointer(mNormalParam, 3, GLES20.GL_FLOAT,
-                false, 0, mCubeNormals);
+        GLES20.glVertexAttribPointer(mCubeNormalParam, 3, GLES20.GL_FLOAT, false, 0, mCubeNormals);
+        GLES20.glVertexAttribPointer(mCubeColorParam, 4, GLES20.GL_FLOAT, false, 0,
+                isLookingAtObject() ? mCubeFoundColors : mCubeColors);
 
-
-
-        if (isLookingAtObject()) {
-            GLES20.glVertexAttribPointer(mColorParam, 4, GLES20.GL_FLOAT, false,
-                    0, mCubeFoundColors);
-        } else {
-            GLES20.glVertexAttribPointer(mColorParam, 4, GLES20.GL_FLOAT, false,
-                    0, mCubeColors);
-        }
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 36);
         checkGLError("Drawing cube");
     }
 
     /**
-     * Draw the floor. This feeds in data for the floor into the shader. Note that this doesn't
-     * feed in data about position of the light, so if we rewrite our code to draw the floor first,
-     * the lighting might look strange.
+     * Draw the floor.
+     *
+     * This feeds in data for the floor into the shader. Note that this doesn't feed in data about
+     * position of the light, so if we rewrite our code to draw the floor first, the lighting might
+     * look strange.
      */
-    public void drawFloor(float[] perspective) {
-        // This is the floor!
-        GLES20.glUniform1f(mIsFloorParam, 1f);
+    public void drawFloor() {
+        GLES20.glUseProgram(mFloorProgram);
 
-        // Set ModelView, MVP, position, normals, and color
-        GLES20.glUniformMatrix4fv(mModelParam, 1, false, mModelFloor, 0);
-        GLES20.glUniformMatrix4fv(mModelViewParam, 1, false, mModelView, 0);
-        GLES20.glUniformMatrix4fv(mModelViewProjectionParam, 1, false, mModelViewProjection, 0);
-        GLES20.glVertexAttribPointer(mPositionParam, COORDS_PER_VERTEX, GLES20.GL_FLOAT,
+        // Set ModelView, MVP, position, normals, and color.
+        GLES20.glUniform3fv(mFloorLightPosParam, 1, mLightPosInEyeSpace, 0);
+        GLES20.glUniformMatrix4fv(mFloorModelParam, 1, false, mModelFloor, 0);
+        GLES20.glUniformMatrix4fv(mFloorModelViewParam, 1, false, mModelView, 0);
+        GLES20.glUniformMatrix4fv(mFloorModelViewProjectionParam, 1, false,
+                mModelViewProjection, 0);
+        GLES20.glVertexAttribPointer(mFloorPositionParam, COORDS_PER_VERTEX, GLES20.GL_FLOAT,
                 false, 0, mFloorVertices);
-        GLES20.glVertexAttribPointer(mNormalParam, 3, GLES20.GL_FLOAT, false, 0, mFloorNormals);
-        GLES20.glVertexAttribPointer(mColorParam, 4, GLES20.GL_FLOAT, false, 0, mFloorColors);
+        GLES20.glVertexAttribPointer(mFloorNormalParam, 3, GLES20.GL_FLOAT, false, 0,
+                mFloorNormals);
+        GLES20.glVertexAttribPointer(mFloorColorParam, 4, GLES20.GL_FLOAT, false, 0, mFloorColors);
+
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6);
 
         checkGLError("drawing floor");
     }
 
     /**
-     * Increment the score, hide the object, and give feedback if the user pulls the magnet while
-     * looking at the object. Otherwise, remind the user what to do.
+     * Called when the Cardboard trigger is pulled.
      */
     @Override
     public void onCardboardTrigger() {
@@ -408,12 +455,14 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         } else {
             mOverlayView.show3DToast("Look around to find the object!");
         }
-        // Always give user feedback
+
+        // Always give user feedback.
         mVibrator.vibrate(50);
     }
 
     /**
      * Find a new random position for the object.
+     *
      * We'll rotate it around the Y-axis so it's out of sight, and then up or down by a little bit.
      */
     private void hideObject() {
@@ -427,13 +476,14 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
         float oldObjectDistance = mObjectDistance;
         mObjectDistance = (float) Math.random() * 15 + 5;
         float objectScalingFactor = mObjectDistance / oldObjectDistance;
-        Matrix.scaleM(rotationMatrix, 0, objectScalingFactor, objectScalingFactor, objectScalingFactor);
+        Matrix.scaleM(rotationMatrix, 0, objectScalingFactor, objectScalingFactor,
+                objectScalingFactor);
         Matrix.multiplyMV(posVec, 0, rotationMatrix, 0, mModelCube, 12);
 
-        // Now get the up or down angle, between -20 and 20 degrees
-        float angleY = (float) Math.random() * 80 - 40; // angle in Y plane, between -40 and 40
+        // Now get the up or down angle, between -20 and 20 degrees.
+        float angleY = (float) Math.random() * 80 - 40; // Angle in Y plane, between -40 and 40.
         angleY = (float) Math.toRadians(angleY);
-        float newY = (float)Math.tan(angleY) * mObjectDistance;
+        float newY = (float) Math.tan(angleY) * mObjectDistance;
 
         Matrix.setIdentityM(mModelCube, 0);
         Matrix.translateM(mModelCube, 0, posVec[0], newY, posVec[2]);
@@ -441,23 +491,20 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
 
     /**
      * Check if user is looking at object by calculating where the object is in eye-space.
-     * @return
+     *
+     * @return true if the user is looking at the object.
      */
     private boolean isLookingAtObject() {
-        float[] initVec = {0, 0, 0, 1.0f};
+        float[] initVec = { 0, 0, 0, 1.0f };
         float[] objPositionVec = new float[4];
 
         // Convert object space to camera space. Use the headView from onNewFrame.
         Matrix.multiplyMM(mModelView, 0, mHeadView, 0, mModelCube, 0);
         Matrix.multiplyMV(objPositionVec, 0, mModelView, 0, initVec, 0);
 
-        float pitch = (float)Math.atan2(objPositionVec[1], -objPositionVec[2]);
-        float yaw = (float)Math.atan2(objPositionVec[0], -objPositionVec[2]);
+        float pitch = (float) Math.atan2(objPositionVec[1], -objPositionVec[2]);
+        float yaw = (float) Math.atan2(objPositionVec[0], -objPositionVec[2]);
 
-        Log.i(TAG, "Object position: X: " + objPositionVec[0]
-                + "  Y: " + objPositionVec[1] + " Z: " + objPositionVec[2]);
-        Log.i(TAG, "Object Pitch: " + pitch +"  Yaw: " + yaw);
-
-        return (Math.abs(pitch) < PITCH_LIMIT) && (Math.abs(yaw) < YAW_LIMIT);
+        return Math.abs(pitch) < PITCH_LIMIT && Math.abs(yaw) < YAW_LIMIT;
     }
 }

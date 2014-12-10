@@ -17,7 +17,7 @@
 package com.google.vrtoolkit.cardboard.samples.treasurehunt;
 
 /**
- * Created by cjr on 6/18/14.
+ * Contains vertex, normal and color data.
  */
 public final class WorldLayoutData {
 
@@ -247,5 +247,4 @@ public final class WorldLayoutData {
             0.0f, 0.3398f, 0.9023f, 1.0f,
             0.0f, 0.3398f, 0.9023f, 1.0f,
     };
-
 }

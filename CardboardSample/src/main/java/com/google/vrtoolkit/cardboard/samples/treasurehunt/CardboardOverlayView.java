@@ -150,13 +150,13 @@ public class CardboardOverlayView extends LinearLayout {
             final int width = right - left;
             final int height = bottom - top;
 
-            // The size of the image, given as a fraction of the dimension as a ViewGroup. We multiply
-            // both width and heading with this number to compute the image's bounding box. Inside the
-            // box, the image is the horizontally and vertically centered.
+            // The size of the image, given as a fraction of the dimension as a ViewGroup.
+            // We multiply both width and heading with this number to compute the image's bounding
+            // box. Inside the box, the image is the horizontally and vertically centered.
             final float imageSize = 0.12f;
 
-            // The fraction of this ViewGroup's height by which we shift the image off the ViewGroup's
-            // center. Positive values shift downwards, negative values shift upwards.
+            // The fraction of this ViewGroup's height by which we shift the image off the
+            // ViewGroup's center. Positive values shift downwards, negative values shift upwards.
             final float verticalImageOffset = -0.07f;
 
             // Vertical position of the text, specified in fractions of this ViewGroup's height.
