@@ -55,7 +55,7 @@ public class CardboardOverlayView extends LinearLayout {
     addView(rightView);
 
     // Set some reasonable defaults.
-    setDepthOffset(0.016f);
+    setDepthOffset(0.01f);
     setColor(Color.rgb(150, 255, 180));
     setVisibility(View.VISIBLE);
 
@@ -152,7 +152,7 @@ public class CardboardOverlayView extends LinearLayout {
       // The size of the image, given as a fraction of the dimension as a ViewGroup.
       // We multiply both width and heading with this number to compute the image's bounding
       // box. Inside the box, the image is the horizontally and vertically centered.
-      final float imageSize = 0.12f;
+      final float imageSize = 0.1f;
 
       // The fraction of this ViewGroup's height by which we shift the image off the
       // ViewGroup's center. Positive values shift downwards, negative values shift upwards.
@@ -162,15 +162,21 @@ public class CardboardOverlayView extends LinearLayout {
       final float verticalTextPos = 0.52f;
 
       // Layout ImageView
+      float adjustedOffset = offset;
+      // If the half screen width is bigger than 1000 pixels, that means it's a big screen
+      // phone and we need to use a different offset value.
+      if (width > 1000) {
+        adjustedOffset = 3.8f * offset;
+      }
       float imageMargin = (1.0f - imageSize) / 2.0f;
-      float leftMargin = (int) (width * (imageMargin + offset));
+      float leftMargin = (int) (width * (imageMargin + adjustedOffset));
       float topMargin = (int) (height * (imageMargin + verticalImageOffset));
       imageView.layout(
         (int) leftMargin, (int) topMargin,
         (int) (leftMargin + width * imageSize), (int) (topMargin + height * imageSize));
 
       // Layout TextView
-      leftMargin = offset * width;
+      leftMargin = adjustedOffset * width;
       topMargin = height * verticalTextPos;
       textView.layout(
         (int) leftMargin, (int) topMargin,
