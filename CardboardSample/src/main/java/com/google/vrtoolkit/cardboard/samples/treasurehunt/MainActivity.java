@@ -455,8 +455,10 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
       overlayView.show3DToast("Look around to find the object!");
     }
 
+//rgh: the vibrator is so strong it produces multiple calls to the Trigger on 
+//samsung galaxy S6. Disabling it fixes the issue.
     // Always give user feedback.
-    vibrator.vibrate(50);
+    //vibrator.vibrate(50);
   }
 
   /**
