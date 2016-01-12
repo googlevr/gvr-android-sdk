@@ -1,0 +1,95 @@
+-- Merging decision tree log ---
+manifest
+ADDED from AndroidManifest.xml:2:1
+	xmlns:android
+		ADDED from AndroidManifest.xml:2:11
+	package
+		ADDED from AndroidManifest.xml:3:11
+	android:versionName
+		ADDED from AndroidManifest.xml:5:11
+		INJECTED from AndroidManifest.xml:0:0
+		INJECTED from AndroidManifest.xml:0:0
+	android:versionCode
+		ADDED from AndroidManifest.xml:4:11
+		INJECTED from AndroidManifest.xml:0:0
+		INJECTED from AndroidManifest.xml:0:0
+uses-permission#android.permission.INTERNET
+ADDED from AndroidManifest.xml:7:5
+	android:name
+		ADDED from AndroidManifest.xml:7:22
+uses-permission#android.permission.NFC
+ADDED from AndroidManifest.xml:8:5
+	android:name
+		ADDED from AndroidManifest.xml:8:22
+uses-permission#android.permission.VIBRATE
+ADDED from AndroidManifest.xml:9:5
+	android:name
+		ADDED from AndroidManifest.xml:9:22
+uses-permission#android.permission.READ_EXTERNAL_STORAGE
+ADDED from AndroidManifest.xml:10:5
+	android:name
+		ADDED from AndroidManifest.xml:10:22
+uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
+ADDED from AndroidManifest.xml:11:5
+	android:name
+		ADDED from AndroidManifest.xml:11:22
+uses-feature#android.hardware.sensor.accelerometer
+ADDED from AndroidManifest.xml:14:5
+	android:required
+		ADDED from AndroidManifest.xml:14:72
+	android:name
+		ADDED from AndroidManifest.xml:14:19
+uses-feature#android.hardware.sensor.gyroscope
+ADDED from AndroidManifest.xml:15:5
+	android:required
+		ADDED from AndroidManifest.xml:15:68
+	android:name
+		ADDED from AndroidManifest.xml:15:19
+uses-sdk
+ADDED from AndroidManifest.xml:17:5
+	android:targetSdkVersion
+		ADDED from AndroidManifest.xml:17:42
+		INJECTED from AndroidManifest.xml:0:0
+		INJECTED from AndroidManifest.xml:0:0
+	android:minSdkVersion
+		ADDED from AndroidManifest.xml:17:15
+		INJECTED from AndroidManifest.xml:0:0
+		INJECTED from AndroidManifest.xml:0:0
+uses-feature#0x00020000
+ADDED from AndroidManifest.xml:18:5
+	android:required
+		ADDED from AndroidManifest.xml:18:52
+	android:glEsVersion
+		ADDED from AndroidManifest.xml:18:19
+application
+ADDED from AndroidManifest.xml:20:5
+	android:label
+		ADDED from AndroidManifest.xml:23:13
+	android:allowBackup
+		ADDED from AndroidManifest.xml:21:13
+	android:icon
+		ADDED from AndroidManifest.xml:22:13
+activity#com.google.vrtoolkit.cardboard.samples.treasurehunt.MainActivity
+ADDED from AndroidManifest.xml:25:9
+	android:screenOrientation
+		ADDED from AndroidManifest.xml:28:17
+	android:label
+		ADDED from AndroidManifest.xml:27:17
+	android:configChanges
+		ADDED from AndroidManifest.xml:29:17
+	android:name
+		ADDED from AndroidManifest.xml:26:17
+intent-filter#android.intent.action.MAIN+android.intent.category.LAUNCHER+com.google.intent.category.CARDBOARD
+ADDED from AndroidManifest.xml:30:13
+action#android.intent.action.MAIN
+ADDED from AndroidManifest.xml:31:17
+	android:name
+		ADDED from AndroidManifest.xml:31:25
+category#android.intent.category.LAUNCHER
+ADDED from AndroidManifest.xml:32:17
+	android:name
+		ADDED from AndroidManifest.xml:32:27
+category#com.google.intent.category.CARDBOARD
+ADDED from AndroidManifest.xml:33:17
+	android:name
+		ADDED from AndroidManifest.xml:33:27

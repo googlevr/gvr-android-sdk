@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.google.vrtoolkit.cardboard.samples.treasurehunt.test">
+
+    <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="19" />
+
+    <application>
+        <uses-library android:name="android.test.runner" />
+    </application>
+
+    <instrumentation android:name="android.test.InstrumentationTestRunner"
+                     android:targetPackage="com.google.vrtoolkit.cardboard.samples.treasurehunt"
+                     android:handleProfiling="false"
+                     android:functionalTest="false"
+                     android:label="Tests for com.google.vrtoolkit.cardboard.samples.treasurehunt"/>
+</manifest>

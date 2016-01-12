@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="/usr/local/google/home/cisrael/cardboard_java_sdk/daydream/cardboard-java/CardboardSample/libs/audio.jar"
+        jumboMode="false"
+        revision="19.1.0"
+        sha1="74fcb5c43eb6843ec691a1a1013a4d38eac2de41">
+        <dex dex="/usr/local/google/home/cisrael/cardboard_java_sdk/daydream/cardboard-java/CardboardSample/build/intermediates/pre-dexed/debug/audio-623ccfb60fa715e591e29e7dd0cee0dbd18de996.jar" />
+    </item>
+    <item
+        jar="/usr/local/google/home/cisrael/cardboard_java_sdk/daydream/cardboard-java/CardboardSample/libs/cardboard.jar"
+        jumboMode="false"
+        revision="19.1.0"
+        sha1="32c8e30df7bdcbf982603f70aeaf89e207f44219">
+        <dex dex="/usr/local/google/home/cisrael/cardboard_java_sdk/daydream/cardboard-java/CardboardSample/build/intermediates/pre-dexed/debug/cardboard-32319f0b54faf5a9f2341251ca74100830aae7bd.jar" />
+    </item>
+
+</items>

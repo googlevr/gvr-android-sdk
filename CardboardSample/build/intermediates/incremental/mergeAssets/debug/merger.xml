@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger version="3"><dataSet config="main"><source path="/usr/local/google/home/cisrael/cardboard_java_sdk/daydream/cardboard-java/CardboardSample/src/main/assets"><file name="cube_sound.wav" path="/usr/local/google/home/cisrael/cardboard_java_sdk/daydream/cardboard-java/CardboardSample/src/main/assets/cube_sound.wav"/></source></dataSet><dataSet config="debug"><source path="/usr/local/google/home/cisrael/cardboard_java_sdk/daydream/cardboard-java/CardboardSample/src/debug/assets"/></dataSet></merger>
