@@ -23,9 +23,11 @@ import com.google.vrtoolkit.cardboard.HeadTransform;
 import com.google.vrtoolkit.cardboard.Viewport;
 import com.google.vrtoolkit.cardboard.audio.CardboardAudioEngine;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
 import android.util.Log;
@@ -123,6 +125,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
    * @param resId The resource ID of the raw text file about to be turned into a shader.
    * @return The shader object handler.
    */
+  @TargetApi(Build.VERSION_CODES.FROYO)
   private int loadGLShader(int type, int resId) {
     String code = readRawTextFile(resId);
     int shader = GLES20.glCreateShader(type);
@@ -152,6 +155,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
    *
    * @param label Label to report in case of error.
    */
+  @TargetApi(Build.VERSION_CODES.FROYO)
   private static void checkGLError(String label) {
     int error;
     while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
@@ -186,7 +190,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
     headView = new float[16];
     vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
-    overlayView = (CardboardOverlayView) findViewById(R.id.overlay);
+    overlayView = (com.google.vrtoolkit.cardboard.samples.treasurehunt.CardboardOverlayView) findViewById(R.id.overlay);
     overlayView.show3DToast("Pull the magnet when you find an object.");
 
     // Initialize 3D audio engine.
@@ -224,6 +228,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
    *
    * @param config The EGL configuration used when creating the surface.
    */
+  @TargetApi(Build.VERSION_CODES.FROYO)
   @Override
   public void onSurfaceCreated(EGLConfig config) {
     Log.i(TAG, "onSurfaceCreated");
@@ -390,6 +395,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
    *
    * @param headTransform The head transformation in the new frame.
    */
+  @TargetApi(Build.VERSION_CODES.FROYO)
   @Override
   public void onNewFrame(HeadTransform headTransform) {
     // Build the Model part of the ModelView matrix.
@@ -413,6 +419,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
    *
    * @param eye The eye to render. Includes all required transformations.
    */
+  @TargetApi(Build.VERSION_CODES.FROYO)
   @Override
   public void onDrawEye(Eye eye) {
     GLES20.glEnable(GLES20.GL_DEPTH_TEST);
@@ -447,6 +454,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
    *
    * <p>We've set all of our transformation matrices. Now we simply pass them into the shader.
    */
+  @TargetApi(Build.VERSION_CODES.FROYO)
   public void drawCube() {
     GLES20.glUseProgram(cubeProgram);
 
@@ -481,6 +489,7 @@ public class MainActivity extends CardboardActivity implements CardboardView.Ste
    * position of the light, so if we rewrite our code to draw the floor first, the lighting might
    * look strange.
    */
+  @TargetApi(Build.VERSION_CODES.FROYO)
   public void drawFloor() {
     GLES20.glUseProgram(floorProgram);
 
