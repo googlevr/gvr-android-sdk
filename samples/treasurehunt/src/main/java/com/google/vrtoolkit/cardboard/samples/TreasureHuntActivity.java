@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.vrtoolkit.cardboard.samples.treasurehunt;
+package com.google.vrtoolkit.cardboard.samples;
 
 import com.google.vrtoolkit.cardboard.CardboardActivity;
 import com.google.vrtoolkit.cardboard.CardboardView;
@@ -22,6 +22,7 @@ import com.google.vrtoolkit.cardboard.Eye;
 import com.google.vrtoolkit.cardboard.HeadTransform;
 import com.google.vrtoolkit.cardboard.Viewport;
 import com.google.vrtoolkit.cardboard.audio.CardboardAudioEngine;
+import com.google.vrtoolkit.cardboard.samples.treasurehunt.R;
 
 import android.content.Context;
 import android.opengl.GLES20;
@@ -158,7 +159,7 @@ public class TreasureHuntActivity
    */
   private static void checkGLError(String label) {
     int error;
-    while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
+    if ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
       Log.e(TAG, label + ": glError " + error);
       throw new RuntimeException(label + ": glError " + error);
     }

@@ -46,13 +46,9 @@ public class SimpleVrVideoActivity extends Activity {
    * the video is fully loaded.
    */
   private boolean loadVideoSuccessful = false;
-  public boolean isLoadVideoSuccessful() {
-    return loadVideoSuccessful;
-  }
 
   /** Tracks the file to be loaded across the lifetime of this app. **/
   private Uri fileUri;
-  private VideoLoaderTask backgroundVideoLoaderTask;
 
   /**
    * The video view and its custom UI elements.
@@ -127,14 +123,32 @@ public class SimpleVrVideoActivity extends Activity {
       fileUri = null;
     }
 
-    // Load the bitmap in a background thread to avoid blocking the UI thread. This operation can
-    // take 100s of milliseconds.
-    if (backgroundVideoLoaderTask != null) {
-      // Cancel any task from a previous intent sent to this activity.
-      backgroundVideoLoaderTask.cancel(true);
-    }
-    backgroundVideoLoaderTask = new VideoLoaderTask();
-    backgroundVideoLoaderTask.execute(fileUri);
+    // Load the file or use a default
+    runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+          try {
+              if (fileUri == null) {
+                  videoWidgetView.loadVideoFromAsset("congo.mp4");
+              } else {
+                  videoWidgetView.loadVideo(fileUri);
+              }
+          } catch (IOException e) {
+              // An error here is normally due to being unable to locate the file.
+              loadVideoSuccessful = false;
+              // Since this is a background thread, we need to switch to the main thread to show a toast.
+              videoWidgetView.post(new Runnable() {
+                  @Override
+                  public void run() {
+                      Toast
+                              .makeText(SimpleVrVideoActivity.this, "Error opening file. ", Toast.LENGTH_LONG)
+                              .show();
+                  }
+              });
+              Log.e(TAG, "Could not open video: " + e);
+          }
+      }
+    });
   }
 
   @Override
@@ -274,37 +288,6 @@ public class SimpleVrVideoActivity extends Activity {
     @Override
     public void onCompletion() {
       videoWidgetView.seekTo(0);
-    }
-  }
-
-  /**
-   * Helper class to manage threading.
-   */
-  class VideoLoaderTask extends AsyncTask<Uri, Void, Boolean> {
-    @Override
-    protected Boolean doInBackground(Uri... uri) {
-      try {
-        if (uri == null || uri.length < 1 || uri[0] == null) {
-          videoWidgetView.loadVideoFromAsset("congo.mp4");
-        } else {
-          videoWidgetView.loadVideo(uri[0]);
-        }
-      } catch (IOException e) {
-        // An error here is normally due to being unable to locate the file.
-        loadVideoSuccessful = false;
-        // Since this is a background thread, we need to switch to the main thread to show a toast.
-        videoWidgetView.post(new Runnable() {
-          @Override
-          public void run() {
-            Toast
-                .makeText(SimpleVrVideoActivity.this, "Error opening file. ", Toast.LENGTH_LONG)
-                .show();
-          }
-        });
-        Log.e(TAG, "Could not open video: " + e);
-      }
-
-      return true;
     }
   }
 }

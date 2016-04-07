@@ -195,13 +195,20 @@ public class SimpleVrPanoramaActivity extends Activity {
         }
       }
 
-      panoWidgetView.loadImageFromBitmap(BitmapFactory.decodeStream(istr), panoOptions);
-      try {
-        istr.close();
-      } catch (IOException e) {
-        Log.e(TAG, "Could not close input stream: " + e);
-      }
+      final InputStream stream = istr;
+      final Options options = panoOptions;
+      runOnUiThread(new Runnable() {
+        @Override
+        public void run() {
+          panoWidgetView.loadImageFromBitmap(BitmapFactory.decodeStream(stream), options);
+          try {
+            stream.close();
+          } catch (IOException e) {
+            Log.e(TAG, "Could not close input stream: " + e);
+          }
 
+        }
+      });
       return true;
     }
   }
