@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.google.vrtoolkit.cardboard.samples.simplepanowidget" >
-    <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="22" />
+          package="com.google.vr.sdk.samples.simplepanowidget" >
+    <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="22" />
 
     <!--
       The app has largeHeap enabled. Since 2k stereo images (2048px wide, 1024px
@@ -25,7 +25,7 @@
         </activity>
     </application>
 
-    <!-- These permissions are used by Cardboard SDK to get the best Cardboard profiles. !-->
+    <!-- These permissions are used by Google VR SDK to get the best Google VR headset profiles. !-->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 </manifest>

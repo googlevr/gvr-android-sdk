@@ -1,5 +1,5 @@
-Cardboard Java
+Google VR SDK
 =====================
-Copyright (c) 2015 Google Inc.  All rights reserved.
+Copyright (c) 2016 Google Inc.  All rights reserved.
 
-[https://developers.google.com/cardboard/android/get-started](https://developers.google.com/cardboard/android/get-started)
+[https://developers.google.com/vr/android/get-started](https://developers.google.com/vr/android/get-started)

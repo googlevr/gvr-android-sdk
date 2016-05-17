@@ -29,7 +29,7 @@
           android:textSize="@dimen/paragragh_text_size"
           android:text="@string/paragraph1" />
 
-      <com.google.vrtoolkit.cardboard.widgets.video.VrVideoView
+      <com.google.vr.sdk.widgets.video.VrVideoView
           android:id="@+id/video_view"
           android:layout_width="match_parent"
           android:scrollbars="@null"

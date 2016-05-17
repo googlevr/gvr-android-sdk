@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-  <string name="title">Machu Pichu\nWorld Heritage Site</string>
+  <string name="title">Machu Picchu\nWorld Heritage Site</string>
   <string name="subtitle">The world-famous citadel of the Andes</string>
   <string name="paragraph1">Machu Picchu is an Incan citadel set high in the Andes Mountains in
     Peru, above the Urubamba River valley.</string>
 
-  <string name="image_caption">A 360 panoramic view of Machu Pichu</string>
+  <string name="image_caption">A 360 panoramic view of Machu Picchu</string>
 
   <string name="paragraph2">It is situated on a mountain ridge above the Sacred Valley which is 80
     kilometres (50 mi) northwest of Cuzco and through which the Urubamba River flows.

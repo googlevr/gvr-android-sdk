@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical">
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/header_padding"
+    android:background="@color/header_background"
+    android:text="API Status:"
+    android:textColor="@color/header_text"/>
+
+  <TextView
+    android:id="@+id/api_status_view"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:fontFamily="monospace"
+    android:text="NO STATUS"/>
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/header_padding"
+    android:background="@color/header_background"
+    android:text="Controller Connection:"
+    android:textColor="@color/header_text"/>
+
+  <TextView
+    android:id="@+id/controller_state_view"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:fontFamily="monospace"
+    android:text="NO STATUS"/>
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/header_padding"
+    android:background="@color/header_background"
+    android:text="Orientation:"
+    android:textColor="@color/header_text"/>
+
+  <TextView
+    android:id="@+id/controller_orientation_text"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:fontFamily="monospace"
+    android:text="NO STATUS"/>
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/header_padding"
+    android:background="@color/header_background"
+    android:text="Touchpad:"
+    android:textColor="@color/header_text"/>
+
+  <TextView
+    android:id="@+id/controller_touchpad_view"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:fontFamily="monospace"
+    android:text="NO STATUS"/>
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/header_padding"
+    android:background="@color/header_background"
+    android:text="Buttons:"
+    android:textColor="@color/header_text"/>
+
+  <TextView
+    android:id="@+id/controller_button_view"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:fontFamily="monospace"
+    android:text="NO STATUS"/>
+
+  <com.google.vr.sdk.samples.controllerclient.OrientationView
+    android:id="@+id/controller_orientation_view"
+    android:layout_width="match_parent"
+    android:layout_height="250dip"/>
+  </LinearLayout>

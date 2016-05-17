@@ -1,13 +1,13 @@
-# Using the Google Cardboard SDK on mutiple architectures.
+# Using the Google VR SDK on mutiple architectures.
 
-By default, the Cardboard SDK targets the armeabi-v7a architecture and the .aar
+By default, the Google VR SDK targets the armeabi-v7a architecture and the .aar
 files in the **libraries** modules only have armeabi-v7a components. This is
 sufficient for targeting the majority of Android devices since these libraries
 can be used on both armeabi-v7a and arm64-v8a phones. Some x86 Android devices
 also support armeabi-v7a native code.
 
 In certain cases, native components for other architectures are required.
-Alternative versions of the Cardboard SDK native libraries are included in this
+Alternative versions of the Google VR SDK native libraries are included in this
 directory and can be included in your app in necessary. The following
 instructions explain how to include alternative architectures in the
 **samples/simplepanowidget** demo.

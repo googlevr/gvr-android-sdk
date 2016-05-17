@@ -3,12 +3,14 @@
 
 // Explicitly load all the libraries and samples using their full path.
 include ':libraries:audio'
+include ':libraries:base'
 include ':libraries:common'
 include ':libraries:commonwidget'
-include ':libraries:core'
+include ':libraries:controller'
 include ':libraries:panowidget'
 include ':libraries:videowidget'
 
+include ':samples:controllerclient'
 include ':samples:simplepanowidget'
 include ':samples:simplevideowidget'
 include ':samples:treasurehunt'
