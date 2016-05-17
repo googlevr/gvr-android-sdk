@@ -1,0 +1,34 @@
+// This is a configuration file used to determine all the projects prior to
+// building them.
+
+// Explicitly load all the libraries and samples using their full path.
+include ':libraries:audio'
+include ':libraries:common'
+include ':libraries:commonwidget'
+include ':libraries:core'
+include ':libraries:panowidget'
+include ':libraries:videowidget'
+
+include ':samples:simplepanowidget'
+include ':samples:simplevideowidget'
+include ':samples:treasurehunt'
+
+// Android Studio doesn't preserve nested modules in its Project View. To create
+// a cleaner layout, we reorganize and rename the modules loaded above.
+Set moduleList = new HashSet()  // Modules to display in the Project View.
+
+// Move all the modules from root/samples/simplepanowidget to
+// root/samples-simplepanowidget.
+rootProject.children.each { outerDir ->
+    outerDir.children.each { innerDir ->
+        // Rename the modules as we move them around.
+        innerDir.name = "$outerDir.name-$innerDir.name"
+    }
+    moduleList.addAll(outerDir.children)
+}
+
+// Remove the top-level modules which are empty and useless.
+rootProject.children.clear()
+
+// Add the subdirectories as top-level modules.
+rootProject.children.addAll(moduleList)
