@@ -23,7 +23,7 @@ import java.io.IOException;
  * command:
  *   adb shell am start -a android.intent.action.VIEW \
  *     -n com.google.vr.sdk.samples.simplevideowidget/.SimpleVrVideoActivity
- *     -d file://sdcard/FILENAME.MP4
+ *     -d file:///sdcard/FILENAME.MP4
  */
 public class SimpleVrVideoActivity extends Activity {
   private static final String TAG = SimpleVrVideoActivity.class.getSimpleName();
