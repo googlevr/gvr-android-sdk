@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <dimen name="title_text_size">24dip</dimen>
+  <dimen name="caption_text_size">12dip</dimen>
+  <dimen name="paragragh_text_size">15dip</dimen>
+</resources>

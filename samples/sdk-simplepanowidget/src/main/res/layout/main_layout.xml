@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="10dip"
+        android:id="@+id/main_layout"
+        android:orientation="vertical" >
+
+        <TextView
+          style="@style/ContentText"
+          android:id="@+id/title"
+          android:textSize="@dimen/title_text_size"
+          android:textStyle="bold"
+          android:textColor="@color/textDark"
+          android:text="@string/title" />
+
+        <TextView
+          style="@style/ContentText"
+          android:id="@+id/subtitle"
+          android:textColor="@color/textLight"
+          android:textSize="@dimen/caption_text_size"
+          android:text="@string/subtitle" />
+
+        <TextView
+          style="@style/ContentText"
+          android:id="@+id/paragraph1"
+          android:textColor="@color/textDark"
+          android:textSize="@dimen/paragragh_text_size"
+          android:text="@string/paragraph1" />
+
+        <com.google.vr.sdk.widgets.pano.VrPanoramaView
+            android:id="@+id/pano_view"
+            android:layout_margin="5dip"
+            android:layout_width="match_parent"
+            android:scrollbars="@null"
+            android:layout_height="250dip"/>
+
+        <TextView
+          style="@style/ContentText"
+          android:id="@+id/pano_view_caption"
+          android:textColor="@color/textLight"
+          android:textSize="12dip"
+          android:text="@string/image_caption" />
+
+        <TextView
+          style="@style/ContentText"
+          android:id="@+id/paragraph2"
+          android:textColor="@color/textDark"
+          android:textSize="@dimen/paragragh_text_size"
+          android:text="@string/paragraph2" />
+
+        <TextView
+          android:id="@+id/source"
+          style="@style/ContentText"
+          android:textColor="@color/textDark"
+          android:textSize="@dimen/paragragh_text_size"/>
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+  <string name="title">Machu Picchu\nWorld Heritage Site</string>
+  <string name="subtitle">The world-famous citadel of the Andes</string>
+  <string name="paragraph1">Machu Picchu is an Incan citadel set high in the Andes Mountains in
+    Peru, above the Urubamba River valley.</string>
+
+  <string name="image_caption">A 360 panoramic view of Machu Picchu</string>
+
+  <string name="paragraph2">It is situated on a mountain ridge above the Sacred Valley which is 80
+    kilometres (50 mi) northwest of Cuzco and through which the Urubamba River flows.
+    Most archaeologists believe that Machu Picchu was built as an estate for the Inca emperor
+    Pachacuti (1438–1472). Often mistakenly referred to as the Lost City of the Incas,
+    it is the most familiar icon of Inca civilization.
+
+\n\nThe Incas built the estate around 1450, but abandoned it a century later at the time of the
+    Spanish Conquest. Although known locally, it was not known to the Spanish during the colonial
+    period and remained unknown to the outside world before being brought to international attention
+    in 1911 by the American historian Hiram Bingham. Most of the outlying buildings have been
+    reconstructed in order to give tourists a better idea of what the structures originally
+    looked like. By 1976, 30% of Machu Picchu had been restored; restoration continues today.
+
+\n\nMachu Picchu was declared a Peruvian Historical Sanctuary in 1981 and a UNESCO World Heritage
+    Site in 1983. In 2007, Machu Picchu was voted one of the New Seven Wonders of the World in a
+    worldwide Internet poll.
+  </string>
+
+  <string name="source">Source &lt;a href="https://en.wikipedia.org/wiki/Machu_Picchu">Wikipedia&lt;/a></string>
+</resources>

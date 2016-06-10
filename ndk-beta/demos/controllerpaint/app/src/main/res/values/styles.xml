@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<style name="AppStyle"
+    parent="@android:style/Theme.Holo.NoActionBar.Fullscreen">
+  <item name="android:windowDisablePreview">true</item>
+</style>
+</resources>
