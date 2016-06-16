@@ -29,26 +29,27 @@
 extern "C" {
 #endif  // __cplusplus
 
-// This is the GVR Audio C API, which allows  the user to spatialize sound
-// sources in 3D space, including distance and height cues. The API is capable
-// of playing back spatial sound in two ways:
+// This is the GVR Audio C API, a spatial audio rendering engine, optimized for
+// mobile VR. It allows the user to spatialize sound sources in 3D space,
+// including distance and elevation cues. Specifically, the API is capable of
+// playing back spatial sound in two ways:
 //
-// - Sound object rendering: It allows the user to create a virtual sound source
-//                           in 3D space. These sources, while spatialized, are
-//                           fed with mono audio data.
+// - Sound object rendering: This allows the user to create a virtual sound
+//                           source in 3D space. These sources, while
+//                           spatialized, are fed with mono audio data.
 // - Ambisonic soundfields:  Ambisonic recordings are multi-channel audio files
 //                           which are spatialized all around the listener in
 //                           360 degrees. These can be thought of as recorded or
-//                           prebaked soundfields. They can be of great use for
+//                           pre-baked soundfields. They can be of great use for
 //                           background effects which sound perfectly spatial.
 //                           Examples include rain noise, crowd noise or even
 //                           the sound of the ocean off to one side.
 //
 // **** Initialization ****
 //
-// gvr_audio_context* gvr_audio_create(gvr_audio_redering_mode rendering_mode);
+// gvr_audio_context* gvr_audio_create(gvr_audio_rendering_mode rendering_mode);
 //
-// gvr_audio_redering_mode is an enum which specifies a rendering configuration
+// gvr_audio_rendering_mode is an enum which specifies a rendering configuration
 // setting:
 //
 // - GVR_AUDIO_RENDERING_STEREO_PANNING:
@@ -62,6 +63,9 @@ extern "C" {
 //   in an approximate equidistribution about the listener’s head. HRTF-based
 //   rendering is enabled.
 //
+// For most modern phones, the high quality mode offers a good balance between
+// performance and audio quality.
+//
 // **** Sound engine control ****
 //
 // Audio playback on the default audio device can be started and stopped by
@@ -70,42 +74,57 @@ extern "C" {
 // void gvr_audio_pause(gvr_audio_context* api);
 // void gvr_audio_resume(gvr_audio_context* api);
 //
-// Note that gvr_audio_update() must be called from the main thread at a regular
-// rate. It is used to execute background operations outside of the audio
-// thread.
+// Note that:
+//
+// void gvr_audio_update(gvr_audio_context* api);
+//
+// must be called from the main thread at a regular rate. It is used to execute
+// background operations outside of the audio thread.
 //
 // **** Listener position and rotation ****
 //
-// In order to ensure that the audio in your application reacts to user head
-// movement it is important to update the listener's head orientation in the
+// To ensure that the audio in your application reacts to listener head
+// movement, it is important to update the listener's head orientation in the
 // graphics callback using the head orientation matrix.
 //
-// The following two methods control the listener’s head position and
-// orientation in terms of audio:
+// The following methods can be used to control the listener’s head position and
+// orientation with the audio engine:
 //
 // void gvr_audio_set_head_position(gvr_audio_context* api, float x, float y,
 //                                  float z);
+// or
+// void gvr_audio_set_head_position_gvr(gvr_audio_context* api,
+//                                      const gvr_vec3f& position);
+//
+// and
+//
 // void gvr_audio_set_head_rotation(gvr_audio_context* api,
 //                                  float x, float y, float z, float w);
+// or
+// void gvr_audio_set_head_rotation_gvr(gvr_audio_context* api,
+//                                      const gvr_mat3f& rotation);
 //
 // **** Spatializtion of sound objects ****
 //
-// GVR Audio allows the user to create virtual sound objects which can
-// be placed anywhere in space around the listener. Ssound objects take as
+// The GVR Audio System allows the user to create virtual sound objects which
+// can be placed anywhere in space around the listener. Sound objects take as
 // input mono soundfiles which must be preloaded into memory by calling:
 //
 // bool gvr_audio_preload_soundfile(gvr_audio_context* api,
 //                                  const char* filename);
 //
-// To create a new sound object from a preloaded mono audio sample, call:
+// Unused sound files can be unloaded with a call to:
+//
+// void gvr_audio_unload_soundfile(gvr_audio_context* api,
+//                                 const char* filename);
+//
+// To create a new sound object from a preloaded audio sample, call:
 //
 // gvr_audio_sound_id gvr_audio_create_sound_object(gvr_audio_context* api,
 //                                                  const char* filename);
-//
-// The returned handle automatically destroys itself at the moment the sound
-// playback has stopped.
-//
-// Position and volume properties of a sound object can be set via:
+
+// This returns a handle that can be used to set properties such as the position
+// and the volume of the sound object via calls to the following two functions:
 //
 // void gvr_audio_set_sound_object_position(gvr_audio_context* api,
 //                                          gvr_audio_sound_id sound_object_id,
@@ -114,69 +133,81 @@ extern "C" {
 // void gvr_audio_set_sound_volume(gvr_audio_context* api,
 //                                 gvr_audio_sound_id sound_id, float volume);
 //
-// Playback of a sound object can be triggered and checked via
+// The spatialized playback of a sound object can be triggered with a call to:
 //
 // void gvr_audio_play_sound(gvr_audio_context* api,
 //                           gvr_audio_sound_id sound_id,
 //                           bool looping_enabled);
+//
+// and stopped with a call to:
+//
 // void gvr_audio_stop_sound(gvr_audio_context* api,
 //                           gvr_audio_sound_id sound_id);
 //
-// Once one is finished with a sound object and wishes to remove it, place
-// a call to:
+// Note that the sound object handle destroys itself at the moment the sound
+// playback has stopped. This way, no clean up of sound object handles is
+// needed. On subsequent calls to this function the corresponding
+// gvr_audio_sound_id no longer refers to a valid sound object.
+//
+// The following function can be used to check if a sound object is currently
+// active:
 //
 // bool gvr_audio_is_sound_playing(const gvr_audio_context* api,
 //                                 gvr_audio_sound_id sound_id);
 //
-// On making a call to this function the sound object is destroyed and the
-// corresponding gvr_audio_sound_id no longer refers to a valid sound object.
-//
 // **** Rendering of ambisonic soundfields ****
 //
-// GVR Audio is also designed to play back ambisonic soundfields. These
-// are captured or pre-rendered 360 degree recordings. It is best to think of
-// them as equivalent to 360 degree video. While they envelop and surround the
-// listener, they only react to rotational movement of the listener. That is,
-// one cannot walk towards features in the soundfield. Soundfields are ideal for
-// accompanying 360 degree video playback, for introducing background and
-// environmental effects such as rain or crowd noise, or even for pre baking 3D
-// audio to reduce rendering costs. Full 3D First Order Ambisonic recordings are
-// supported which use ACN channel ordering and SN3D normalization. For more
-// information please see Spatial Audio specification at:
+// The GVR Audio System also provides the user with the ability to play back
+// ambisonic soundfields. Ambisonic soundfields are captured or pre-rendered 360
+// degree recordings. It is best to think of them as equivalent to 360 degree
+// video. While they envelop and surround the listener, they only react to the
+// listener's rotational movement. That is, one cannot walk towards features in
+// the soundfield. Soundfields are ideal for accompanying 360 degree video
+// playback, for introducing background and environmental effects such as rain
+// or crowd noise, or even for pre baking 3D audio to reduce rendering costs.
+// The GVR Audio System supports full 3D First Order Ambisonic recordings using
+// ACN channel ordering and SN3D normalization. For more information please see
+// our Spatial Audio specification at:
 // https://github.com/google/spatial-media/blob/master/docs/spatial-audio-rfc.md#semantics
 //
-// Soundfield playback is directly streamed from the sound file and no sound
-// file preloading is needed. To obtain a soundfield handler, call:
+// Note that Soundfield playback is directly streamed from the sound file and no
+// sound file preloading is needed.
+//
+// To obtain a soundfield handler, call:
 //
 // gvr_audio_sound_id gvr_audio_create_soundfield(gvr_audio_context* api,
 //                                                const char* filename);
 //
-// The gvr_audio_sound_id handle allows the user to begin playback
-// of the soundfield, to alter the soundfield’s volume or to stop soundfield
-// playback and as such destroy the object.
+// This returns a gvr_audio_sound_id handle that allows the user to begin
+// playback of the soundfield, to alter the soundfield’s volume or to stop
+// soundfield playback and as such destroy the object. These actions can be
+// achieved with calls to the following functions:
 //
 // void gvr_audio_play_sound(gvr_audio_context* api,
 //                           gvr_audio_sound_id sound_id,
 //                           bool looping_enabled);
+//
 // void gvr_audio_set_sound_volume(gvr_audio_context* api,
 //                                 gvr_audio_sound_id sound_id, float volume);
+//
 // void gvr_audio_stop_sound(gvr_audio_context* api,
 //                           gvr_audio_sound_id sound_id);
 //
 // **** Room effects ****
 //
-// GVR Audio also provides a reverb engine enabling the user to create
-// arbitrary room effects by specifying the size of a room and a material for
-// each surface of the room from the gvr_audio_material_name enum. Each of these
-// surface materials has unique absorption properties which differ with
-// frequency. Note that the unit of distance is in meters.
-// The room created will be centered around the listener.
+// The GVR Audio System provides a powerful reverb engine which can be used to
+// create customized room effects by specifying the size of a room and a
+// material for each surface of the room from the gvr_audio_material_name enum.
+// Each of these surface materials has unique absorption properties which differ
+// with frequency. The room created will be centered around the listener. Note
+// that the Google VR Audio System uses meters as the unit of distance
+// throughout.
 //
 // The following methods are used to control room effects:
 //
 // void gvr_audio_enable_room(gvr_audio_context* api, bool enable);
 //
-// which enables or disables room effects with smooth transitions.
+// enables or disables room effects with smooth transitions.
 //
 // and
 //
@@ -186,15 +217,17 @@ extern "C" {
 //                                    gvr_audio_material_name ceiling_material,
 //                                    gvr_audio_material_name floor_material);
 //
-// which allows the user to describe the room based on its dimensions (size_x,
-// size_y, size_z), and its surface properties. For example, one can expect very
-// large rooms to be more reverberant than smaller rooms and a room with brick
-// surfaces to be more reverberant than one with heavy curtains on every
-// surface.
+// allows the user to describe the room based on its dimensions and its surface
+// properties. For example, one can expect very large rooms to be more
+// reverberant than smaller rooms, and a room with with hard surface materials
+// such as brick to be more reverberant than one with soft absorbent materials
+// such as heavy curtains on every surface.
 //
-// NB: Sources located outside of a room will sound quite different from those
-// inside due to an attenuation of reverb and direct sound while sources far
-// outside of a room will not be audible.
+// Note that when a sound source is located outside of the listener's room,
+// it will sound different from sources located within the room due to
+// attenuation of both the direct sound and the reverb on that source. Sources
+// located far outside of the listener's room will not be audible to the
+// listener.
 //
 // If you are writing C++ code, you might prefer to use the C++ wrapper
 // rather than implement this C API directly. The C++ API is located at
@@ -203,15 +236,18 @@ extern "C" {
 // **** Example usage (C++ API) ****
 //
 // Construction:
+//
 // std::unique_ptr<gvr::AudioApi> gvr_audio_api(new gvr::AudioApi);
 // gvr_audio_api->Init(GVR_AUDIO_RENDERING_BINAURAL_HIGH_QUALITY);
 //
 // Update head rotation in DrawFrame():
+//
 // head_pose_ = gvr_api_->GetHeadPoseInStartSpace(target_time);
 // gvr_audio_api_->SetHeadRotation(head_pose_.rotation);
 // gvr_audio_api_->Update();
 //
 // Preload sound file, create sound handle and start playback:
+//
 // gvr_audio_api->PreloadSoundfile(kSoundFile);
 // AudioSoundId sound_id = gvr_audio_api_->CreateSoundObject("sound.wav");
 // gvr_audio_api->SetSoundObjectPosition(sound_id,
@@ -240,11 +276,11 @@ typedef struct gvr_audio_context gvr_audio_context;
 // @return gvr_audio_context instance.
 gvr_audio_context* gvr_audio_create(JNIEnv* env, jobject android_context,
                                     jobject class_loader,
-                                    gvr_audio_redering_mode rendering_mode);
+                                    gvr_audio_rendering_mode rendering_mode);
 #else
 // @param rendering_mode Chooses the rendering configuration preset.
 // @return gvr_audio_context instance.
-gvr_audio_context* gvr_audio_create(gvr_audio_redering_mode rendering_mode);
+gvr_audio_context* gvr_audio_create(gvr_audio_rendering_mode rendering_mode);
 #endif  // #ifdef __ANDROID__
 
 // Destroys a gvr_audio_context that was previously created with
@@ -256,14 +292,14 @@ void gvr_audio_destroy(gvr_audio_context** api);
 
 // Resumes the VR Audio system.
 // Call this when your app/game loses focus.
-// Calling this when already paused is a no-op.
+// Calling this when not paused is a no-op.
 // Thread-safe (call from any thread).
 //
 // @param api Pointer to a gvr_audio_context.
 void gvr_audio_resume(gvr_audio_context* api);
 
 // Pauses the VR Audio system.
-// Calling this when already resumed is a no-op.
+// Calling this when already paused is a no-op.
 // Thread-safe (call from any thread).
 //
 // @param api Pointer to a gvr_audio_context.
@@ -279,25 +315,26 @@ void gvr_audio_update(gvr_audio_context* api);
 // depends on the target platform.
 //
 // @param api Pointer to a gvr_audio_context.
-// @param filename Name of the file used as identifier.
-// @return True on success or if file has been already preloaded.
+// @param filename Name of the file, used as identifier.
+// @return True on success or if file has already been preloaded.
 bool gvr_audio_preload_soundfile(gvr_audio_context* api, const char* filename);
 
 // Unloads a previously preloaded sample from memory. Note that if the sample
 // is currently used, the memory is freed at the moment playback stops.
 //
 // @param api Pointer to a gvr_audio_context.
-// @param filename Name of the file used as identifier.
+// @param filename Name of the file, used as identifier.
 void gvr_audio_unload_soundfile(gvr_audio_context* api, const char* filename);
 
-// Returns a new sound object. Note that the sample needs to be preloaded and
-// may only contain a single audio channel (mono). The handle automatically
-// destroys itself at the moment the sound playback has stopped.
+// Returns a new sound object. Note that the sample referred to needs to be
+// preloaded and may only contain a single audio channel (mono).
+// The handle automatically destroys itself at the moment the sound playback has
+// stopped.
 //
 // @param api Pointer to a gvr_audio_context.
 // @param filename The path/name of the file to be played.
-// @return Id of new sound object. Returns kInvalidId if the sound file could
-//     not be loaded or if the number of input channels is > 1.
+// @return Id of new sound object. Returns kInvalidId if the sound file has not
+//     been preloaded or if the number of input channels is > 1.
 gvr_audio_sound_id gvr_audio_create_sound_object(gvr_audio_context* api,
                                                  const char* filename);
 
@@ -307,9 +344,9 @@ gvr_audio_sound_id gvr_audio_create_sound_object(gvr_audio_context* api,
 //
 // @param api Pointer to a gvr_audio_context.
 // @param filename The path/name of the file to be played.
-// @return Id of new sound object. Returns kInvalidId if the sound file could
-//     not be loaded or if the number of requires input channels does not
-//     match.
+// @return Id of new sound object. Returns kInvalidId if the sound file has not
+//     been preloaded or if the number of input channels does not match that
+//     required.
 gvr_audio_sound_id gvr_audio_create_soundfield(gvr_audio_context* api,
                                                const char* filename);
 
@@ -451,13 +488,13 @@ class AudioApi {
   // For more information, see gvr_audio_create().
 #ifdef __ANDROID__
   bool Init(JNIEnv* env, jobject android_context, jobject class_loader,
-            AudioRederingMode rendering_mode) {
+            AudioRenderingMode rendering_mode) {
     context_ =
         gvr_audio_create(env, android_context, class_loader, rendering_mode);
     return context_ != nullptr;
   }
 #else
-  bool Init(AudioRederingMode rendering_mode) {
+  bool Init(AudioRenderingMode rendering_mode) {
     context_ = gvr_audio_create(rendering_mode);
     return context_ != nullptr;
   }

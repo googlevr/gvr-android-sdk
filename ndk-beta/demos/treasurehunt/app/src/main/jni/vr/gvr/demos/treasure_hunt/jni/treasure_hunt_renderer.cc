@@ -18,6 +18,7 @@
 #include <android/log.h>
 #include <assert.h>
 #include <cmath>
+#include <random>
 
 #define LOG_TAG "TreasureHuntCPP"
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
@@ -195,12 +196,12 @@ static gvr::Recti CalculatePixelSpaceRect(const gvr::Sizei& texture_size,
   return result;
 }
 
-// Generate a random floating point number between 0 and 1. Use intermediate
-// double precision values to avoid quantisation in the cast of a 32bit int to
-// a float.
+// Generate a random floating point number between 0 and 1.
 static float RandomUniformFloat() {
-  return static_cast<float>(static_cast<double>(rand()) /  // NOLINT
-                            static_cast<double>(RAND_MAX));
+  static std::random_device random_device;
+  static std::mt19937 random_generator(random_device());
+  static std::uniform_real_distribution<float> random_distribution(0, 1);
+  return random_distribution(random_generator);
 }
 
 static void CheckGLError(const char* label) {

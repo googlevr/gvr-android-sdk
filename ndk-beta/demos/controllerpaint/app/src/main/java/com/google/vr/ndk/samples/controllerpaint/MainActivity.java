@@ -97,7 +97,15 @@ public class MainActivity extends Activity {
     setContentView(gvrLayout);
 
     // Add UI layer.
-    gvrLayout.addView(new GvrUiLayout(this));
+    GvrUiLayout gvrUiLayout = new GvrUiLayout(this);
+    gvrUiLayout.setBackButtonListener(
+        new Runnable() {
+          @Override
+          public void run() {
+            onBackPressed();
+          }
+        });
+    gvrLayout.addView(gvrUiLayout);
 
     assetManager = getResources().getAssets();
 
