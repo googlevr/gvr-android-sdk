@@ -10,10 +10,10 @@ include ':libraries:controller'
 include ':libraries:panowidget'
 include ':libraries:videowidget'
 
-include ':samples:controllerclient'
-include ':samples:simplepanowidget'
-include ':samples:simplevideowidget'
-include ':samples:treasurehunt'
+include ':samples:sdk-controllerclient'
+include ':samples:sdk-simplepanowidget'
+include ':samples:sdk-simplevideowidget'
+include ':samples:sdk-treasurehunt'
 
 // Android Studio doesn't preserve nested modules in its Project View. To create
 // a cleaner layout, we reorganize and rename the modules loaded above.

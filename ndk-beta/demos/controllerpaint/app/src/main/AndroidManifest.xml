@@ -22,12 +22,29 @@
       android:allowBackup="true"
       android:label="@string/app_name"
       android:icon="@mipmap/ic_launcher"
-      android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen">
+      android:theme="@style/AppStyle">
     <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
         android:screenOrientation="landscape"
         android:configChanges="keyboardHidden|screenSize">
+
+      <!-- The VR icon to be used in Daydream Home comes in two parts:
+           a foreground icon and a background icon.  -->
+      <meta-data android:name="com.google.android.vr.icon"
+                 android:resource="@drawable/vr_icon" />
+      <meta-data android:name="com.google.android.vr.icon_background"
+                 android:resource="@drawable/vr_icon_background" />
+
+      <!-- Intent filter that enables this app to be launched from the
+           Daydream Home menu. -->
+      <intent-filter>
+          <action android:name="android.intent.action.MAIN" />
+          <category android:name="com.google.intent.category.DAYDREAM"/>
+      </intent-filter>
+
+      <!-- Intent filter that enables this app to be launched from the
+           Cardboard app and from the traditional launcher. -->
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />

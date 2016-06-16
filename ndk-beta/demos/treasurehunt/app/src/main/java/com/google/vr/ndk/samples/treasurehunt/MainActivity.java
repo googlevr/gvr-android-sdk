@@ -105,7 +105,15 @@ public class MainActivity extends Activity {
     gvrLayout.setPresentationView(glSurfaceView);
 
     // Add the VR UI layout to the GvrLayout.
-    gvrLayout.addView(new GvrUiLayout(this));
+    GvrUiLayout gvrUiLayout = new GvrUiLayout(this);
+    gvrUiLayout.setBackButtonListener(
+        new Runnable() {
+          @Override
+          public void run() {
+            onBackPressed();
+          }
+        });
+    gvrLayout.addView(gvrUiLayout);
 
     // Add the GvrLayout to the View hierarchy.
     setContentView(gvrLayout);

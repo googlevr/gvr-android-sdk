@@ -30,7 +30,7 @@ typedef enum {
   // If this enabled, a separate distortion function for each color channel
   // is used.
   // Disabled by default.
-  GVR_CHROMATIC_ABBERATION_CORRECTED_ENABLED = 0,
+  GVR_CHROMATIC_ABERRATION_CORRECTION_ENABLED = 0,
 
   // If this is enabled, frames will be collected by the rendering system and
   // re-projected in sync with the scanout of the display. This feature may
@@ -43,10 +43,10 @@ typedef enum {
   // whether scanline racing has been enabled.
   //
   // Disabled by default.
-  GVR_SCANLINE_RACING_ENABLED,
+  GVR_SCANLINE_RACING_ENABLED = 1,
 
   // The number of parameters.
-  GVR_NUM_PARAMETERS
+  GVR_NUM_BOOL_PARAMETERS = 2,
 } gvr_bool_parameter;
 
 // An enum for the left and right eye.
@@ -208,17 +208,20 @@ typedef enum {
   GVR_CONTROLLER_CONNECTED = 3,
 } gvr_controller_connection_state;
 
-// Controller buttons
+// Controller buttons.
+// TODO(b/28973309): replace with bitmasks, and replace the button state arrays
+// in gvr_controller_state with integers.
 typedef enum {
   GVR_CONTROLLER_BUTTON_NONE = 0,
-  GVR_CONTROLLER_BUTTON_CLICK,  // Touchpad Click.
-  GVR_CONTROLLER_BUTTON_HOME,
-  GVR_CONTROLLER_BUTTON_APP,
-  GVR_CONTROLLER_BUTTON_VOLUME_UP,
-  GVR_CONTROLLER_BUTTON_VOLUME_DOWN,
+  GVR_CONTROLLER_BUTTON_CLICK = 1,  // Touchpad Click.
+  GVR_CONTROLLER_BUTTON_HOME = 2,
+  GVR_CONTROLLER_BUTTON_APP = 3,
+  GVR_CONTROLLER_BUTTON_VOLUME_UP = 4,
+  GVR_CONTROLLER_BUTTON_VOLUME_DOWN = 5,
 
-  // Must be the last element (indicates how many buttons there are).
-  GVR_CONTROLLER_BUTTON_COUNT,
+  // Note: there are 5 buttons on the controller, but the state arrays have
+  // this many elements due to the inclusion of a dummy "none" button.
+  GVR_CONTROLLER_BUTTON_COUNT = 6,
 } gvr_controller_button;
 
 // Representation of the controller state in a given moment.
@@ -312,58 +315,58 @@ typedef enum {
   GVR_AUDIO_RENDERING_STEREO_PANNING = 0,
   // HRTF-based rendering over a virtual array of 8 loudspeakers arranged in
   // a cube configuration around the listener’s head.
-  GVR_AUDIO_RENDERING_BINAURAL_LOW_QUALITY,
+  GVR_AUDIO_RENDERING_BINAURAL_LOW_QUALITY = 1,
   // HRTF-based rendering over a virtual array of 16 loudspeakers arranged in
   // an approximate equidistribution about the around the listener’s head.
-  GVR_AUDIO_RENDERING_BINAURAL_HIGH_QUALITY
-} gvr_audio_redering_mode;
+  GVR_AUDIO_RENDERING_BINAURAL_HIGH_QUALITY = 2,
+} gvr_audio_rendering_mode;
 
 // Room surface material names, used to set room properties.
 typedef enum {
   // Acoustically transparent material, reflects no sound.
   GVR_AUDIO_MATERIAL_TRANSPARENT = 0,
   // Acoustic ceiling tiles, absorbs most frequencies.
-  GVR_AUDIO_MATERIAL_ACOUSTIC_CEILING_TILES,
+  GVR_AUDIO_MATERIAL_ACOUSTIC_CEILING_TILES = 1,
   // Bare brick, relatively reflective.
-  GVR_AUDIO_MATERIAL_BRICK_BARE,
+  GVR_AUDIO_MATERIAL_BRICK_BARE = 2,
   // Painted brick
-  GVR_AUDIO_MATERIAL_BRICK_PAINTED,
+  GVR_AUDIO_MATERIAL_BRICK_PAINTED = 3,
   // Coarse surface concrete block.
-  GVR_AUDIO_MATERIAL_CONCRETE_BLOCK_COARSE,
+  GVR_AUDIO_MATERIAL_CONCRETE_BLOCK_COARSE = 4,
   // Painted concrete block.
-  GVR_AUDIO_MATERIAL_CONCRETE_BLOCK_PAINTED,
+  GVR_AUDIO_MATERIAL_CONCRETE_BLOCK_PAINTED = 5,
   // Heavy curtains.
-  GVR_AUDIO_MATERIAL_CURTAIN_HEAVY,
+  GVR_AUDIO_MATERIAL_CURTAIN_HEAVY = 6,
   // Fiber glass insulation.
-  GVR_AUDIO_MATERIAL_FIBER_GLASS_INSULATION,
+  GVR_AUDIO_MATERIAL_FIBER_GLASS_INSULATION = 7,
   // Thin glass.
-  GVR_AUDIO_MATERIAL_GLASS_THIN,
+  GVR_AUDIO_MATERIAL_GLASS_THIN = 8,
   // Thick glass.
-  GVR_AUDIO_MATERIAL_GLASS_THICK,
+  GVR_AUDIO_MATERIAL_GLASS_THICK = 9,
   // Grass.
-  GVR_AUDIO_MATERIAL_GRASS,
+  GVR_AUDIO_MATERIAL_GRASS = 10,
   // Linoleum on concrete.
-  GVR_AUDIO_MATERIAL_LINOLEUM_ON_CONCRETE,
+  GVR_AUDIO_MATERIAL_LINOLEUM_ON_CONCRETE = 11,
   // Marble.
-  GVR_AUDIO_MATERIAL_MARBLE,
+  GVR_AUDIO_MATERIAL_MARBLE = 12,
   // Wooden parquet on concrete.
-  GVR_AUDIO_MATERIAL_PARQUET_ON_CONCRETE,
+  GVR_AUDIO_MATERIAL_PARQUET_ON_CONCRETE = 13,
   // Rough plaster surface.
-  GVR_AUDIO_MATERIAL_PLASTER_ROUGH,
+  GVR_AUDIO_MATERIAL_PLASTER_ROUGH = 14,
   // Smooth plaster surface.
-  GVR_AUDIO_MATERIAL_PLASTER_SMOOTH,
+  GVR_AUDIO_MATERIAL_PLASTER_SMOOTH = 15,
   // Plywood panel.
-  GVR_AUDIO_MATERIAL_PLYWOOD_PANEL,
+  GVR_AUDIO_MATERIAL_PLYWOOD_PANEL = 16,
   // Polished concrete OR tile surface.
-  GVR_AUDIO_MATERIAL_POLISHED_CONCRETE_OR_TILE,
+  GVR_AUDIO_MATERIAL_POLISHED_CONCRETE_OR_TILE = 17,
   // Sheet rock.
-  GVR_AUDIO_MATERIAL_SHEET_ROCK,
+  GVR_AUDIO_MATERIAL_SHEET_ROCK = 18,
   // Surface of water or ice.
-  GVR_AUDIO_MATERIAL_WATER_OR_ICE_SURFACE,
+  GVR_AUDIO_MATERIAL_WATER_OR_ICE_SURFACE = 19,
   // Wooden ceiling.
-  GVR_AUDIO_MATERIAL_WOOD_CEILING,
+  GVR_AUDIO_MATERIAL_WOOD_CEILING = 20,
   // Wood panneling.
-  GVR_AUDIO_MATERIAL_WOOD_PANEL
+  GVR_AUDIO_MATERIAL_WOOD_PANEL = 21,
 } gvr_audio_material_type;
 
 // Sound object and sound field identifier.
@@ -380,9 +383,11 @@ namespace gvr {
 
 typedef gvr_bool_parameter BoolParameterId;
 const BoolParameterId kChromaticAberrationCorrectionEnabled =
-    static_cast<BoolParameterId>(GVR_CHROMATIC_ABBERATION_CORRECTED_ENABLED);
+    static_cast<BoolParameterId>(GVR_CHROMATIC_ABERRATION_CORRECTION_ENABLED);
 const BoolParameterId kScanlineRacingEnabled =
     static_cast<BoolParameterId>(GVR_SCANLINE_RACING_ENABLED);
+const BoolParameterId kNumBoolParameters =
+    static_cast<BoolParameterId>(GVR_NUM_BOOL_PARAMETERS);
 
 typedef gvr_controller_api_status ControllerApiStatus;
 const ControllerApiStatus kControllerApiOk =
@@ -445,7 +450,7 @@ typedef gvr_quatf ControllerQuat;
 typedef gvr_controller_api_options ControllerApiOptions;
 typedef gvr_controller_state ControllerState;
 
-typedef gvr_audio_redering_mode AudioRederingMode;
+typedef gvr_audio_rendering_mode AudioRenderingMode;
 typedef gvr_audio_material_type AudioMaterialName;
 typedef gvr_audio_sound_id AudioSoundId;
 
@@ -456,6 +461,49 @@ class OffscreenFramebufferHandle;
 class RenderParamsList;
 
 }  // namespace gvr
+
+// Non-member equality operators for convenience.
+inline bool operator==(const gvr::Vec2f& lhs, const gvr::Vec2f& rhs) {
+  return lhs.x == rhs.x && lhs.y == rhs.y;
+}
+
+inline bool operator!=(const gvr::Vec2f& lhs, const gvr::Vec2f& rhs) {
+  return !(lhs == rhs);
+}
+
+inline bool operator==(const gvr::Vec3f& lhs, const gvr::Vec3f& rhs) {
+  return lhs.x == rhs.x && lhs.y == rhs.y;
+}
+
+inline bool operator!=(const gvr::Vec3f& lhs, const gvr::Vec3f& rhs) {
+  return !(lhs == rhs);
+}
+
+inline bool operator==(const gvr::Recti& lhs, const gvr::Recti& rhs) {
+  return lhs.left == rhs.left && lhs.right == rhs.right &&
+         lhs.bottom == rhs.bottom && lhs.top == rhs.top;
+}
+
+inline bool operator!=(const gvr::Recti& lhs, const gvr::Recti& rhs) {
+  return !(lhs == rhs);
+}
+
+inline bool operator==(const gvr::Rectf& lhs, const gvr::Rectf& rhs) {
+  return lhs.left == rhs.left && lhs.right == rhs.right &&
+         lhs.bottom == rhs.bottom && lhs.top == rhs.top;
+}
+
+inline bool operator!=(const gvr::Rectf& lhs, const gvr::Rectf& rhs) {
+  return !(lhs == rhs);
+}
+
+inline bool operator==(const gvr::Sizei& lhs, const gvr::Sizei& rhs) {
+  return lhs.width == rhs.width && lhs.height == rhs.height;
+}
+
+inline bool operator!=(const gvr::Sizei& lhs, const gvr::Sizei& rhs) {
+  return !(lhs == rhs);
+}
 
 #endif  // #ifdef __cplusplus
 

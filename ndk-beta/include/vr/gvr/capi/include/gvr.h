@@ -25,7 +25,6 @@
 
 #ifdef __cplusplus
 #include <array>
-#include <functional>
 #include <memory>
 #endif
 
@@ -313,6 +312,9 @@ gvr_render_params gvr_get_render_params(
 
 // Creates an offscreen framebuffer and adds it to the pool of managed
 // offscreen framebuffers.
+//
+// Note that, for scanline-racing applications, only one offscreen
+// framebuffer can be created.
 //
 // WARNING: Framebuffer creation and usage should occur only *after*
 // initialize_gl() has been called on |gvr|.
@@ -959,12 +961,6 @@ class GvrApi {
   // Whether |context_| is owned by the GvrApi instance. If owned, the context
   // will be released upon destruction.
   const bool owned_;
-
-  // Cached user callbacks. As it's not possible to implicitly convert an
-  // std::functoin to a function pointer, the user callbacks are stored and
-  // proxied via an indirect function pointer created by the GvrApi instance.
-  std::function<void()> trigger_handler_;
-  std::function<void()> back_handler_;
 
   // Disallow copy and assign.
   GvrApi(const GvrApi&);
