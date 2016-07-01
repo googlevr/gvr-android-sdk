@@ -16,13 +16,14 @@
 
 package com.google.vr.ndk.samples.controllerpaint;
 
+import com.google.vr.ndk.base.AndroidCompat;
 import com.google.vr.ndk.base.GvrLayout;
-import com.google.vr.ndk.base.GvrUiLayout;
 
 import android.app.Activity;
 import android.content.res.AssetManager;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
@@ -80,32 +81,45 @@ public class MainActivity extends Activity {
             });
 
     // Enable VR mode, if the device supports it.
-    com.google.vr.ndk.base.AndroidCompat.setVrModeEnabled(this, true);
+    AndroidCompat.setVrModeEnabled(this, true);
 
     // Get the GvrLayout.
     gvrLayout = new GvrLayout(this);
 
+    // Enable scan line racing, if possible.
+    if (gvrLayout.setScanlineRacingEnabled(true)) {
+      Log.d(TAG, "Successfully enabled scanline racing.");
+      // Scanline racing decouples the app framerate from the display framerate,
+      // allowing immersive interaction even at the throttled clockrates set by
+      // sustained performance mode.
+      AndroidCompat.setSustainedPerformanceMode(this, true);
+    } else {
+      Log.w(TAG, "Failed to enable scanline racing.");
+    }
+
     // Configure the GLSurfaceView.
     surfaceView = new GLSurfaceView(this);
     surfaceView.setEGLContextClientVersion(2);
-    surfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 8);
+    surfaceView.setEGLConfigChooser(8, 8, 8, 0, 0, 0);
     surfaceView.setPreserveEGLContextOnPause(true);
     surfaceView.setRenderer(renderer);
 
     // Set the GLSurfaceView as the GvrLayout's presentation view.
     gvrLayout.setPresentationView(surfaceView);
-    setContentView(gvrLayout);
 
-    // Add UI layer.
-    GvrUiLayout gvrUiLayout = new GvrUiLayout(this);
-    gvrUiLayout.setBackButtonListener(
-        new Runnable() {
-          @Override
-          public void run() {
-            onBackPressed();
-          }
-        });
-    gvrLayout.addView(gvrUiLayout);
+    // Enable and configure the back button in the UI layout.
+    gvrLayout
+        .getUiLayout()
+        .setBackButtonListener(
+            new Runnable() {
+              @Override
+              public void run() {
+                onBackPressed();
+              }
+            });
+
+    // Add the GvrLayout to the View hierarchy.
+    setContentView(gvrLayout);
 
     assetManager = getResources().getAssets();
 

@@ -1,7 +1,6 @@
 package com.google.vr.sdk.samples.controllerclient;
 
 import com.google.vr.sdk.controller.Controller;
-import com.google.vr.sdk.controller.Orientation;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -74,7 +73,7 @@ public class OrientationView extends GLSurfaceView {
   }
 
   /**
-   * This is similar to {@link com.google.vr.sdk.base.GvrView#resetHeadTracker}.
+   * This is similar to {@link com.google.vr.sdk.base.GvrView#recenterHeadTracker}.
    */
   public void resetYaw() {
     startFromSensorTransformation = null;
@@ -249,33 +248,6 @@ public class OrientationView extends GLSurfaceView {
       GLES20.glEnable(GLES20.GL_DEPTH_TEST);
     }
 
-    /**
-     * Converts an {@link com.google.vr.sdk.controller.Orientation} to a column-major rotation
-     * matrix.
-     */
-    private void orientationToRotationMatrix(float[] matrix, Orientation o) {
-      // Based on https://en.wikipedia.org/wiki/Rotation_matrix#Quaternion.
-      matrix[0]  = 1 - 2 * o.y * o.y - 2 * o.z * o.z;
-      matrix[1]  =     2 * o.x * o.y + 2 * o.z * o.w;
-      matrix[2]  =     2 * o.x * o.z - 2 * o.y * o.w;
-      matrix[3]  = 0;
-
-      matrix[4]  =     2 * o.x * o.y - 2 * o.z * o.w;
-      matrix[5]  = 1 - 2 * o.x * o.x - 2 * o.z * o.z;
-      matrix[6]  =     2 * o.y * o.z + 2 * o.x * o.w;
-      matrix[7]  = 0;
-
-      matrix[8]  =     2 * o.x * o.z + 2 * o.y * o.w;
-      matrix[9]  =     2 * o.y * o.z - 2 * o.x * o.w;
-      matrix[10] = 1 - 2 * o.x * o.x - 2 * o.y * o.y;
-      matrix[11] = 0;
-
-      matrix[12] = 0;
-      matrix[13] = 0;
-      matrix[14] = 0;
-      matrix[15] = 1;
-    }
-
     // The Matrix class requires preallocated arrays for calculations. To avoid allocating new
     // variables per-frame, these are temp arrays used during calculation in onDrawFrame.
     private final float[] tmpMatrix1 = new float[16];
@@ -304,7 +276,7 @@ public class OrientationView extends GLSurfaceView {
       // Convert object space to world space.
       if (controller != null) {
         controller.update();
-        orientationToRotationMatrix(controllerInStartSpaceMatrix, controller.orientation);
+        controller.orientation.toRotationMatrix(controllerInStartSpaceMatrix);
       }
       Matrix.multiplyMM(tmpMatrix1, 0, tmpMatrix2, 0, controllerInStartSpaceMatrix, 0);
 

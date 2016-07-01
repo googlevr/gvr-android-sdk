@@ -33,6 +33,15 @@ import java.io.IOException;
  *     -n com.google.vr.sdk.samples.simplevideowidget/.SimpleVrVideoActivity \
  *     -d "https://EXAMPLE.COM/FILENAME.M3U8" \
  *     --ei inputFormat 2
+ *
+ * To specify that the video is of type stereo over under (has images for left and right eyes),
+ * add "--ei inputType 2" to pass in an integer extra which will set VrVideoView.Options.inputType.
+ * This can be combined with other extras.
+ * e.g.
+ *   adb shell am start -a android.intent.action.VIEW \
+ *     -n com.google.vr.sdk.samples.simplevideowidget/.SimpleVrVideoActivity \
+ *     -d "https://EXAMPLE.COM/FILENAME.MP4" \
+ *     --ei inputType 2
  */
 public class SimpleVrVideoActivity extends Activity {
   private static final String TAG = SimpleVrVideoActivity.class.getSimpleName();
@@ -144,6 +153,7 @@ public class SimpleVrVideoActivity extends Activity {
       }
 
       videoOptions.inputFormat = intent.getIntExtra("inputFormat", Options.FORMAT_DEFAULT);
+      videoOptions.inputType = intent.getIntExtra("inputType", Options.TYPE_MONO);
     } else {
       Log.i(TAG, "Intent is not ACTION_VIEW. Using the default video.");
       fileUri = null;
@@ -308,7 +318,10 @@ public class SimpleVrVideoActivity extends Activity {
       try {
          if (fileInformation == null || fileInformation.length < 1
           || fileInformation[0] == null || fileInformation[0].first == null) {
-          videoWidgetView.loadVideoFromAsset("congo.mp4");
+          // No intent was specified, so we default to playing the local stereo-over-under video.
+          Options options = new Options();
+          options.inputType = Options.TYPE_STEREO_OVER_UNDER;
+          videoWidgetView.loadVideoFromAsset("congo.mp4", options);
         } else {
           videoWidgetView.loadVideo(fileInformation[0].first, fileInformation[0].second);
         }

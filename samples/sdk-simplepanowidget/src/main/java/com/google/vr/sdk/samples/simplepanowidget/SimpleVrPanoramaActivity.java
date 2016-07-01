@@ -58,7 +58,7 @@ public class SimpleVrPanoramaActivity extends Activity {
    * on the UI thread. In a real app, this variable would be code that performs some UI actions when
    * the panorama is fully loaded.
    */
-  private boolean loadImageSuccessful;
+  public boolean loadImageSuccessful;
   /** Tracks the file to be loaded across the lifetime of this app. **/
   private Uri fileUri;
   /** Configuration information for the panorama. **/
@@ -131,10 +131,6 @@ public class SimpleVrPanoramaActivity extends Activity {
     }
     backgroundImageLoaderTask = new ImageLoaderTask();
     backgroundImageLoaderTask.execute(Pair.create(fileUri, panoOptions));
-  }
-
-  public boolean isLoadImageSuccessful() {
-    return loadImageSuccessful;
   }
 
   @Override

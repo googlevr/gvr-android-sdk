@@ -227,10 +227,10 @@ void DemoApp::OnSurfaceCreated() {
   controller_api_->Resume();
 
   LOGD("Initializing framebuffer.");
-  gvr::Sizei size = gvr_api_->GetRecommendedRenderTargetSize();
-  framebuf_size_ = size;
+  gvr::FramebufferSpec spec = gvr_api_->CreateFramebufferSpec();
+  framebuf_size_ = spec.GetSize();
   framebuf_handle_.reset(new gvr::OffscreenFramebufferHandle(
-      gvr_api_->CreateOffscreenFramebuffer(size)));
+      gvr_api_->CreateOffscreenFramebuffer(spec)));
 
   LOGD("Compiling shaders.");
   int vp = Utils::BuildShader(GL_VERTEX_SHADER, kPaintShaderVp);
@@ -308,7 +308,7 @@ void DemoApp::OnDrawFrame() {
           render_params_list_->GetRenderParams(1));
   gvr_api_->SetDefaultFramebufferActive();
   gvr_api_->DistortOffscreenFramebufferToScreen(
-      *framebuf_handle_, *render_params_list_, nullptr, nullptr);
+      *framebuf_handle_, *render_params_list_, &head_pose, &pred_time);
 }
 
 void DemoApp::PrepareFramebuffer() {

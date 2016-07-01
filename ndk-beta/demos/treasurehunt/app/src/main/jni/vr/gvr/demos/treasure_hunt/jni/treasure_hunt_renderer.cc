@@ -100,24 +100,6 @@ static std::array<float, 16> MatrixToGLArray(const gvr::Mat4f& matrix) {
   return result;
 }
 
-static gvr::Mat4f PoseToMatrix(const gvr::HeadPose& head_pose) {
-  gvr::Mat4f result;
-  for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 3; ++j) {
-      result.m[i][j] = head_pose.rotation.m[i][j];
-    }
-  }
-  result.m[0][3] = head_pose.position.x;
-  result.m[1][3] = head_pose.position.y;
-  result.m[2][3] = head_pose.position.z;
-  result.m[3][0] = 0.0f;
-  result.m[3][1] = 0.0f;
-  result.m[3][2] = 0.0f;
-  result.m[3][3] = 1.0f;
-
-  return result;
-}
-
 static std::array<float, 4> MatrixVectorMul(const gvr::Mat4f& matrix,
                                             const std::array<float, 4>& vec) {
   std::array<float, 4> result;
@@ -301,10 +283,11 @@ void TreasureHuntRenderer::InitializeGl() {
                   0.0f, 0.0f, 1.0f, 0.0f,
                   0.0f, 0.0f, 0.0f, 1.0f};
 
-  render_size_ = gvr_api_->GetRecommendedRenderTargetSize();
+  gvr::FramebufferSpec spec = gvr_api_->CreateFramebufferSpec();
+  render_size_ = spec.GetSize();
 
   framebuffer_handle_.reset(new gvr::OffscreenFramebufferHandle(
-      gvr_api_->CreateOffscreenFramebuffer(render_size_)));
+      gvr_api_->CreateOffscreenFramebuffer(spec)));
 
   render_params_list_.reset(new gvr::RenderParamsList(
       gvr_api_->CreateEmptyRenderParamsList()));

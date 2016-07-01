@@ -116,7 +116,7 @@ public class ControllerClientActivity extends Activity {
     @Override
     public void onRecentered() {
       // If this was a real GVR application, this would call
-      // {@link com.google.vr.sdk.base.GvrView#resetHeadTracker} instead of this method.
+      // {@link com.google.vr.sdk.base.GvrView#recenterHeadTracker} instead of this method.
       controllerOrientationView.resetYaw();
     }
 
