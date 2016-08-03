@@ -176,6 +176,8 @@ DemoApp::DemoApp(JNIEnv* env, jobject asset_mgr_obj, jlong gvr_context_ptr)
       // Wrap the gvr_context* into a GvrApi C++ object for convenience:
       gvr_api_(gvr::GvrApi::WrapNonOwned(gvr_context_)),
       gvr_api_initialized_(false),
+      viewport_list_(gvr_api_->CreateEmptyBufferViewportList()),
+      scratch_viewport_(gvr_api_->CreateBufferViewport()),
       shader_(-1),
       shader_u_color_(-1),
       shader_u_mvp_matrix_(-1),
@@ -202,7 +204,10 @@ DemoApp::~DemoApp() {
 
 void DemoApp::OnResume() {
   LOGD("DemoApp::OnResume");
-  if (gvr_api_initialized_) gvr_api_->ResumeTracking();
+  if (gvr_api_initialized_) {
+    gvr_api_->RefreshViewerProfile();
+    gvr_api_->ResumeTracking();
+  }
   if (controller_api_) controller_api_->Resume();
 }
 
@@ -221,16 +226,18 @@ void DemoApp::OnSurfaceCreated() {
   LOGD("Initializing ControllerApi.");
   controller_api_.reset(new gvr::ControllerApi);
   CHECK(controller_api_);
-  gvr::ControllerApiOptions options;
-  gvr::ControllerApi::InitDefaultOptions(&options);
-  CHECK(controller_api_->Init(options, gvr_context_));
+  CHECK(controller_api_->Init(gvr::ControllerApi::DefaultOptions(),
+                              gvr_context_));
   controller_api_->Resume();
 
   LOGD("Initializing framebuffer.");
-  gvr::FramebufferSpec spec = gvr_api_->CreateFramebufferSpec();
-  framebuf_size_ = spec.GetSize();
-  framebuf_handle_.reset(new gvr::OffscreenFramebufferHandle(
-      gvr_api_->CreateOffscreenFramebuffer(spec)));
+  std::vector<gvr::BufferSpec> specs;
+  specs.push_back(gvr_api_->CreateBufferSpec());
+  framebuf_size_ = specs[0].GetSize();
+  specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
+  specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
+  specs[0].SetSamples(2);
+  swapchain_.reset(new gvr::SwapChain(gvr_api_->CreateSwapchain(specs)));
 
   LOGD("Compiling shaders.");
   int vp = Utils::BuildShader(GL_VERTEX_SHADER, kPaintShaderVp);
@@ -253,9 +260,6 @@ void DemoApp::OnSurfaceCreated() {
   CHECK(glGetError() == GL_NO_ERROR);
   gvr_api_initialized_ = true;
 
-  LOGD("Initializing render params list.");
-  render_params_list_.reset(new gvr::RenderParamsList(
-      gvr_api_->CreateEmptyRenderParamsList()));
 
   LOGD("Init complete.");
 }
@@ -271,44 +275,43 @@ void DemoApp::OnDrawFrame() {
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   glEnable(GL_BLEND);
 
-  render_params_list_->SetToRecommendedRenderParams();
+  viewport_list_.SetToRecommendedBufferViewports();
   gvr::ClockTimePoint pred_time = gvr::GvrApi::GetTimePointNow();
   pred_time.monotonic_system_time_nanos += kPredictionTimeWithoutVsyncNanos;
-  const gvr::HeadPose head_pose = gvr_api_->GetHeadPoseInStartSpace(pred_time);
 
-  const gvr::Mat4f left_eye_view_matrix =
+  gvr::Mat4f head_pose = gvr_api_->GetHeadPoseInStartSpace(pred_time);
+  const gvr::Mat4f left_eye_view_pose =
       Utils::MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_LEFT_EYE),
-                       head_pose.object_from_reference_matrix);
-  const gvr::Mat4f right_eye_view_matrix =
+                       head_pose);
+  const gvr::Mat4f right_eye_view_pose =
       Utils::MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_RIGHT_EYE),
-                       head_pose.object_from_reference_matrix);
+                       head_pose);
 
-  const gvr_controller_api_status old_status = controller_state_.api_status;
-  const gvr_controller_connection_state old_connection_state =
-      controller_state_.connection_state;
+  const int32_t old_status = controller_state_.GetApiStatus();
+  const int32_t old_connection_state = controller_state_.GetConnectionState();
 
   // Read current controller state.
-  controller_api_->ReadState(&controller_state_);
+  controller_state_.Update(*controller_api_);
 
   // Print new API status and connection state, if they changed.
-  if (controller_state_.api_status != old_status ||
-      controller_state_.connection_state != old_connection_state) {
+  if (controller_state_.GetApiStatus() != old_status ||
+      controller_state_.GetConnectionState() != old_connection_state) {
     LOGD("DemoApp: controller API status: %s, connection state: %s",
-         gvr_controller_api_status_to_string(controller_state_.api_status),
+         gvr_controller_api_status_to_string(controller_state_.GetApiStatus()),
          gvr_controller_connection_state_to_string(
-             controller_state_.connection_state));
+             controller_state_.GetConnectionState()));
   }
 
-  framebuf_handle_->SetActive();
+  gvr::Frame frame = swapchain_->AcquireFrame();
+  frame.BindBuffer(0);
 
   glClearColor(kSkyColor[0], kSkyColor[1], kSkyColor[2], 1.0f);
-  DrawEye(GVR_LEFT_EYE, left_eye_view_matrix,
-          render_params_list_->GetRenderParams(0));
-  DrawEye(GVR_RIGHT_EYE, right_eye_view_matrix,
-          render_params_list_->GetRenderParams(1));
-  gvr_api_->SetDefaultFramebufferActive();
-  gvr_api_->DistortOffscreenFramebufferToScreen(
-      *framebuf_handle_, *render_params_list_, &head_pose, &pred_time);
+  viewport_list_.GetBufferViewport(0, &scratch_viewport_);
+  DrawEye(GVR_LEFT_EYE, left_eye_view_pose, scratch_viewport_);
+  viewport_list_.GetBufferViewport(1, &scratch_viewport_);
+  DrawEye(GVR_RIGHT_EYE, right_eye_view_pose, scratch_viewport_);
+  frame.Unbind();
+  frame.Submit(viewport_list_, head_pose);
 }
 
 void DemoApp::PrepareFramebuffer() {
@@ -316,17 +319,17 @@ void DemoApp::PrepareFramebuffer() {
   if (framebuf_size_.width != recommended_size.width ||
       framebuf_size_.height != recommended_size.height) {
     // We need to resize the framebuffer.
-    framebuf_handle_->Resize(recommended_size);
+    swapchain_->ResizeBuffer(0, recommended_size);
     framebuf_size_ = recommended_size;
   }
 }
 
 void DemoApp::CheckColorSwitch() {
-  if (switched_color_ || !controller_state_.is_touching) return;
-  float x_diff = fabs(controller_state_.touch_pos.x - touch_down_x_);
+  if (switched_color_ || !controller_state_.IsTouching()) return;
+  float x_diff = fabs(controller_state_.GetTouchPos().x - touch_down_x_);
   if (x_diff < kColorSwitchThreshold) return;
   if (brush_stroke_total_vertices_ > kMaxVerticesForColorSwitch) return;
-  if (controller_state_.touch_pos.x > touch_down_x_) {
+  if (controller_state_.GetTouchPos().x > touch_down_x_) {
     selected_color_ = (selected_color_ + 1) % kColors.size();
   } else {
     selected_color_ = selected_color_ == 0 ? kColors.size() - 1 :
@@ -336,8 +339,8 @@ void DemoApp::CheckColorSwitch() {
 }
 
 void DemoApp::CheckChangeStrokeWidth() {
-  if (!controller_state_.is_touching) return;
-  float delta_y = controller_state_.touch_pos.y - touch_down_y_;
+  if (!controller_state_.IsTouching()) return;
+  float delta_y = controller_state_.GetTouchPos().y - touch_down_y_;
   float delta_width = -delta_y * (kMaxStrokeWidth - kMinStrokeWidth);
   stroke_width_ = touch_down_stroke_width_ + delta_width;
   stroke_width_ = stroke_width_ < kMinStrokeWidth ? kMinStrokeWidth :
@@ -345,25 +348,28 @@ void DemoApp::CheckChangeStrokeWidth() {
 }
 
 void DemoApp::DrawEye(gvr::Eye which_eye, const gvr::Mat4f& eye_view_matrix,
-                      const gvr::RenderParams& params) {
-  Utils::SetUpViewportAndScissor(framebuf_size_, params);
+                      const gvr::BufferViewport& viewport) {
+  Utils::SetUpViewportAndScissor(framebuf_size_, viewport);
 
   gvr::Mat4f proj_matrix =
-      Utils::PerspectiveMatrixFromView(params.eye_fov, kNearClip, kFarClip);
+      Utils::PerspectiveMatrixFromView(viewport.GetSourceFov(), kNearClip,
+                                       kFarClip);
 
   // Figure out the point the cursor is pointing to.
   const gvr::Mat4f cursor_mat =
-      Utils::ControllerQuatToMatrix(controller_state_.orientation);
+      Utils::ControllerQuatToMatrix(controller_state_.GetOrientation());
   const std::array<float, 3> neutral_pos = { 0, 0, -kDefaultPaintDistance };
   const std::array<float, 3> target_pos = Utils::MatrixVectorMul(
       cursor_mat, neutral_pos);
 
-  bool paint_button_down = kRequireClickToPaint ?
-      controller_state_.button_down[gvr::kControllerButtonClick] :
-      controller_state_.touch_down;
-  bool paint_button_up = kRequireClickToPaint ?
-      controller_state_.button_up[gvr::kControllerButtonClick] :
-      controller_state_.touch_up;
+  bool paint_button_down =
+      kRequireClickToPaint
+          ? controller_state_.GetButtonDown(gvr::kControllerButtonClick)
+          : controller_state_.GetTouchDown();
+  bool paint_button_up =
+      kRequireClickToPaint
+          ? controller_state_.GetButtonUp(gvr::kControllerButtonClick)
+          : controller_state_.GetTouchUp();
 
   if (paint_button_down) {
     StartPainting(target_pos);
@@ -371,15 +377,16 @@ void DemoApp::DrawEye(gvr::Eye which_eye, const gvr::Mat4f& eye_view_matrix,
     StopPainting(true);
   }
 
-  if (controller_state_.touch_down) {
-    touch_down_x_ = controller_state_.touch_pos.x;
-    touch_down_y_ = controller_state_.touch_pos.y;
+  if (controller_state_.GetTouchDown()) {
+    touch_down_x_ = controller_state_.GetTouchPos().x;
+    touch_down_y_ = controller_state_.GetTouchPos().y;
     touch_down_stroke_width_ = stroke_width_;
-  } else if (controller_state_.touch_up) {
+  } else if (controller_state_.GetTouchUp()) {
     switched_color_ = false;
   }
 
-  if (!painting_ && controller_state_.button_down[gvr::kControllerButtonApp]) {
+  if (!painting_ &&
+      controller_state_.GetButtonDown(gvr::kControllerButtonApp)) {
     ClearDrawing();
   }
 
@@ -553,7 +560,7 @@ void DemoApp::DrawCursorRect(float scale, const std::array<float, 4> color,
       0.0f,  0.0f, 0.0f, 1.0f,
   };
   gvr::Mat4f controller_matrix =
-      Utils::ControllerQuatToMatrix(controller_state_.orientation);
+      Utils::ControllerQuatToMatrix(controller_state_.GetOrientation());
   gvr::Mat4f model_matrix = Utils::MatrixMul(controller_matrix, neutral_matrix);
   gvr::Mat4f mv = Utils::MatrixMul(view_matrix, model_matrix);
   gvr::Mat4f mvp = Utils::MatrixMul(proj_matrix, mv);

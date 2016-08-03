@@ -15,9 +15,6 @@
 
 package com.google.vr.ndk.samples.treasurehunt;
 
-import com.google.vr.ndk.base.AndroidCompat;
-import com.google.vr.ndk.base.GvrLayout;
-
 import android.app.Activity;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
@@ -26,7 +23,8 @@ import android.os.Vibrator;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
-
+import com.google.vr.ndk.base.AndroidCompat;
+import com.google.vr.ndk.base.GvrLayout;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -118,7 +116,7 @@ public class MainActivity extends Activity {
     setContentView(gvrLayout);
 
     // Enable scan line racing.
-    if (gvrLayout.setScanlineRacingEnabled(true)) {
+    if (gvrLayout.setAsyncReprojectionEnabled(true)) {
       // Scanline racing decouples the app framerate from the display framerate,
       // allowing immersive interaction even at the throttled clockrates set by
       // sustained performance mode.

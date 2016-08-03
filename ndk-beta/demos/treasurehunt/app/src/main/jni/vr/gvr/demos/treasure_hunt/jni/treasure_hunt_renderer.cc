@@ -200,6 +200,7 @@ TreasureHuntRenderer::TreasureHuntRenderer(
     gvr_context* gvr_context, std::unique_ptr<gvr::AudioApi> gvr_audio_api)
     : gvr_api_(gvr::GvrApi::WrapNonOwned(gvr_context)),
       gvr_audio_api_(std::move(gvr_audio_api)),
+      scratch_viewport_(gvr_api_->CreateBufferViewport()),
       floor_vertices_(nullptr),
       floor_colors_(nullptr),
       floor_normals_(nullptr),
@@ -210,7 +211,7 @@ TreasureHuntRenderer::TreasureHuntRenderer(
       light_pos_world_space_({0.0f, 2.0f, 0.0f, 1.0f}),
       object_distance_(3.5f),
       floor_depth_(20.0f),
-      sound_id_(-1) {}
+      audio_source_id_(-1) {}
 
 TreasureHuntRenderer::~TreasureHuntRenderer() {
   // Join the audio initialization thread in case it still exists.
@@ -283,14 +284,17 @@ void TreasureHuntRenderer::InitializeGl() {
                   0.0f, 0.0f, 1.0f, 0.0f,
                   0.0f, 0.0f, 0.0f, 1.0f};
 
-  gvr::FramebufferSpec spec = gvr_api_->CreateFramebufferSpec();
-  render_size_ = spec.GetSize();
+  render_size_ = gvr_api_->GetRecommendedRenderTargetSize();
+  std::vector<gvr::BufferSpec> specs;
+  specs.push_back(gvr_api_->CreateBufferSpec());
+  specs[0].SetSize(render_size_);
+  specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
+  specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
+  specs[0].SetSamples(2);
+  swapchain_.reset(new gvr::SwapChain(gvr_api_->CreateSwapchain(specs)));
 
-  framebuffer_handle_.reset(new gvr::OffscreenFramebufferHandle(
-      gvr_api_->CreateOffscreenFramebuffer(spec)));
-
-  render_params_list_.reset(new gvr::RenderParamsList(
-      gvr_api_->CreateEmptyRenderParamsList()));
+  viewport_list_.reset(new gvr::BufferViewportList(
+      gvr_api_->CreateEmptyBufferViewportList()));
 
   // Initialize audio engine and preload sample in a separate thread to avoid
   // any delay during construction and app initialization. Only do this once.
@@ -301,39 +305,36 @@ void TreasureHuntRenderer::InitializeGl() {
 }
 
 void TreasureHuntRenderer::DrawFrame() {
-  render_params_list_->SetToRecommendedRenderParams();
-  framebuffer_handle_->SetActive();
+  viewport_list_->SetToRecommendedBufferViewports();
+  gvr::Frame frame = swapchain_->AcquireFrame();
 
   // A client app does its rendering here.
   gvr::ClockTimePoint target_time = gvr::GvrApi::GetTimePointNow();
   target_time.monotonic_system_time_nanos +=
       kPredictionTimeWithoutVsyncNanos;
+
   head_pose_ = gvr_api_->GetHeadPoseInStartSpace(target_time);
+  gvr::Mat4f left_eye_view_pose =
+      MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_LEFT_EYE), head_pose_);
+  gvr::Mat4f right_eye_view_pose =
+      MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_RIGHT_EYE), head_pose_);
 
-  gvr::Mat4f left_eye_view_matrix =
-      MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_LEFT_EYE),
-                head_pose_.object_from_reference_matrix);
-  gvr::Mat4f right_eye_view_matrix =
-      MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_RIGHT_EYE),
-                head_pose_.object_from_reference_matrix);
-
+  frame.BindBuffer(0);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_SCISSOR_TEST);
-  DrawEye(GVR_LEFT_EYE, left_eye_view_matrix,
-          render_params_list_->GetRenderParams(0));
-  DrawEye(GVR_RIGHT_EYE, right_eye_view_matrix,
-          render_params_list_->GetRenderParams(1));
+  viewport_list_->GetBufferViewport(0, &scratch_viewport_);
+  DrawEye(GVR_LEFT_EYE, left_eye_view_pose, scratch_viewport_);
+  viewport_list_->GetBufferViewport(1, &scratch_viewport_);
+  DrawEye(GVR_RIGHT_EYE, right_eye_view_pose, scratch_viewport_);
 
   // Bind back to the default framebuffer.
-  gvr_api_->SetDefaultFramebufferActive();
-
-  gvr_api_->DistortOffscreenFramebufferToScreen(
-      *framebuffer_handle_, *render_params_list_, &head_pose_, &target_time);
+  frame.Unbind();
+  frame.Submit(*viewport_list_, head_pose_);
 
   CheckGLError("onDrawFrame");
 
   // Update audio head rotation in audio API.
-  gvr_audio_api_->SetHeadRotation(head_pose_.rotation);
+  gvr_audio_api_->SetHeadPose(head_pose_);
   gvr_audio_api_->Update();
 }
 
@@ -385,9 +386,9 @@ int TreasureHuntRenderer::LoadGLShader(int type, const char** shadercode) {
  * @param eye The eye to render. Includes all required transformations.
  */
 void TreasureHuntRenderer::DrawEye(gvr::Eye eye, const gvr::Mat4f& view_matrix,
-                                   const gvr::RenderParams& params) {
+                                   const gvr::BufferViewport& params) {
   const gvr::Recti pixel_rect =
-      CalculatePixelSpaceRect(render_size_, params.eye_viewport_bounds);
+      CalculatePixelSpaceRect(render_size_, params.GetSourceUv());
 
   glViewport(pixel_rect.left, pixel_rect.bottom,
              pixel_rect.right - pixel_rect.left,
@@ -402,7 +403,7 @@ void TreasureHuntRenderer::DrawEye(gvr::Eye eye, const gvr::Mat4f& view_matrix,
   // Set the position of the light
   light_pos_eye_space_  = MatrixVectorMul(view_matrix, light_pos_world_space_);
   gvr::Mat4f perspective =
-      PerspectiveMatrixFromView(params.eye_fov, kZNear, kZFar);
+      PerspectiveMatrixFromView(params.GetSourceFov(), kZNear, kZFar);
 
   modelview_ = MatrixMul(view_matrix, model_cube_);
   modelview_projection_cube_ = MatrixMul(perspective, modelview_);
@@ -511,8 +512,8 @@ void TreasureHuntRenderer::HideObject() {
   model_cube_.m[1][3] = cube_position[1];
   model_cube_.m[2][3] = cube_position[2];
 
-  if (sound_id_ >= 0) {
-    gvr_audio_api_->SetSoundObjectPosition(sound_id_, cube_position[0],
+  if (audio_source_id_ >= 0) {
+    gvr_audio_api_->SetSoundObjectPosition(audio_source_id_, cube_position[0],
                                            cube_position[1], cube_position[2]);
   }
 }
@@ -521,8 +522,7 @@ bool TreasureHuntRenderer::IsLookingAtObject() {
   static const float kPitchLimit = 0.12f;
   static const float kYawLimit = 0.12f;
 
-  gvr::Mat4f modelview =
-      MatrixMul(head_pose_.object_from_reference_matrix, model_cube_);
+  gvr::Mat4f modelview = MatrixMul(head_pose_, model_cube_);
 
   std::array<float, 4> temp_position =
       MatrixVectorMul(modelview, {0.f, 0.f, 0.f, 1.f});
@@ -537,10 +537,11 @@ void TreasureHuntRenderer::LoadAndPlayCubeSound() {
   // Preload sound file.
   gvr_audio_api_->PreloadSoundfile(kSoundFile);
   // Create sound file handler from preloaded sound file.
-  sound_id_ = gvr_audio_api_->CreateSoundObject(kSoundFile);
+  audio_source_id_ = gvr_audio_api_->CreateSoundObject(kSoundFile);
   // Set sound object to current cube position.
-  gvr_audio_api_->SetSoundObjectPosition(
-      sound_id_, model_cube_.m[0][3], model_cube_.m[1][3], model_cube_.m[2][3]);
+  gvr_audio_api_->SetSoundObjectPosition(audio_source_id_, model_cube_.m[0][3],
+                                         model_cube_.m[1][3],
+                                         model_cube_.m[2][3]);
   // Trigger sound object playback.
-  gvr_audio_api_->PlaySound(sound_id_, true /* looped playback */);
+  gvr_audio_api_->PlaySound(audio_source_id_, true /* looped playback */);
 }

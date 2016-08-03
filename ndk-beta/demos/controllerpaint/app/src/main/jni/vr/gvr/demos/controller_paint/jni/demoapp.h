@@ -82,7 +82,7 @@ class DemoApp {
 
   // Draws the image for the indicated eye.
   void DrawEye(gvr::Eye which_eye, const gvr::Mat4f& eye_view_matrix,
-               const gvr::RenderParams& params);
+               const gvr::BufferViewport& params);
 
   // Draws the ground plane below the player.
   void DrawGround(const gvr::Mat4f& view_matrix, const gvr::Mat4f& proj_matrix);
@@ -156,15 +156,14 @@ class DemoApp {
   // Controller API entry point.
   std::unique_ptr<gvr::ControllerApi> controller_api_;
 
-  // Handle to the offscreen framebuffer we use for rendering. The offscreen
-  // buffer is created by GvrApi by our request. On every frame, we
-  // have to check if it's still the right size for the frame (since the
-  // rendering surface size can change at any time). This is done by
-  // PrepareFramebuffer().
-  std::unique_ptr<gvr::OffscreenFramebufferHandle> framebuf_handle_;
+  // Handle to the swapchain. On every frame, we have to check if the buffers
+  // are still the right size for the frame (since they can be resized at any
+  // time). This is done by PrepareFramebuffer().
+  std::unique_ptr<gvr::SwapChain> swapchain_;
 
   // List of rendering params (used to render each eye).
-  std::unique_ptr<gvr::RenderParamsList> render_params_list_;
+  gvr::BufferViewportList viewport_list_;
+  gvr::BufferViewport scratch_viewport_;
 
   // Size of the offscreen framebuffer.
   gvr::Sizei framebuf_size_;

@@ -87,7 +87,7 @@ public class MainActivity extends Activity {
     gvrLayout = new GvrLayout(this);
 
     // Enable scan line racing, if possible.
-    if (gvrLayout.setScanlineRacingEnabled(true)) {
+    if (gvrLayout.setAsyncReprojectionEnabled(true)) {
       Log.d(TAG, "Successfully enabled scanline racing.");
       // Scanline racing decouples the app framerate from the display framerate,
       // allowing immersive interaction even at the throttled clockrates set by

@@ -1,15 +1,14 @@
 package com.google.vr.sdk.samples.controllerclient;
 
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Handler;
+import android.widget.TextView;
 import com.google.vr.sdk.base.AndroidCompat;
 import com.google.vr.sdk.controller.Controller;
 import com.google.vr.sdk.controller.Controller.ConnectionStates;
 import com.google.vr.sdk.controller.ControllerManager;
 import com.google.vr.sdk.controller.ControllerManager.ApiStatus;
-
-import android.app.Activity;
-import android.os.Bundle;
-import android.os.Handler;
-import android.widget.TextView;
 
 /**
  * Minimal example demonstrating how to receive and process Daydream controller input. It connects

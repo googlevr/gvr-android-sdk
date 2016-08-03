@@ -1,7 +1,5 @@
 package com.google.vr.sdk.samples.controllerclient;
 
-import com.google.vr.sdk.controller.Controller;
-
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,11 +11,10 @@ import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-
+import com.google.vr.sdk.controller.Controller;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 

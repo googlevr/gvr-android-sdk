@@ -1,9 +1,5 @@
 package com.google.vr.sdk.samples.simplevideowidget;
 
-import com.google.vr.sdk.widgets.video.VrVideoEventListener;
-import com.google.vr.sdk.widgets.video.VrVideoView;
-import com.google.vr.sdk.widgets.video.VrVideoView.Options;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -16,7 +12,9 @@ import android.util.Pair;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import com.google.vr.sdk.widgets.video.VrVideoEventListener;
+import com.google.vr.sdk.widgets.video.VrVideoView;
+import com.google.vr.sdk.widgets.video.VrVideoView.Options;
 import java.io.IOException;
 
 /**

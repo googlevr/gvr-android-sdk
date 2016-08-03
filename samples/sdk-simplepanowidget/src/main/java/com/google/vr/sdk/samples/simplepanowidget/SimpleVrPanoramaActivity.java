@@ -16,10 +16,6 @@
 
 package com.google.vr.sdk.samples.simplepanowidget;
 
-import com.google.vr.sdk.widgets.pano.VrPanoramaEventListener;
-import com.google.vr.sdk.widgets.pano.VrPanoramaView;
-import com.google.vr.sdk.widgets.pano.VrPanoramaView.Options;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.content.res.AssetManager;
@@ -33,7 +29,9 @@ import android.util.Log;
 import android.util.Pair;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import com.google.vr.sdk.widgets.pano.VrPanoramaEventListener;
+import com.google.vr.sdk.widgets.pano.VrPanoramaView;
+import com.google.vr.sdk.widgets.pano.VrPanoramaView.Options;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;

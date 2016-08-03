@@ -82,7 +82,7 @@ class Utils {
   // Sets up the viewport and scissor regions in preparation for rendering,
   // according to the given RenderTextureParams object.
   static void SetUpViewportAndScissor(const gvr::Sizei& framebuf_size,
-                                      const gvr::RenderParams& params);
+                                      const gvr::BufferViewport& params);
 
   // Compiles a shader of the given type (GL_VERTEX_SHADER or
   // GL_FRAGMENT_SHADER) and returns its handle. Aborts on failure.

@@ -17,6 +17,7 @@
 package com.google.vr.sdk.samples.treasurehunt;
 
 import com.google.vr.sdk.audio.GvrAudioEngine;
+import com.google.vr.sdk.base.AndroidCompat;
 import com.google.vr.sdk.base.Eye;
 import com.google.vr.sdk.base.GvrActivity;
 import com.google.vr.sdk.base.GvrView;
@@ -211,6 +212,14 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
             onBackPressed();
           }
         });
+
+    if (gvrView.setAsyncReprojectionEnabled(true)) {
+      // Async reprojection decouples the app framerate from the display framerate,
+      // allowing immersive interaction even at the throttled clockrates set by
+      // sustained performance mode.
+      AndroidCompat.setSustainedPerformanceMode(this, true);
+    }
+
     setGvrView(gvrView);
   }
 

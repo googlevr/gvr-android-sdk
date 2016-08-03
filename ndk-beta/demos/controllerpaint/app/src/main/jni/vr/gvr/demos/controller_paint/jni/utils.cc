@@ -17,8 +17,8 @@
 #include "vr/gvr/demos/controller_paint/jni/utils.h"
 
 void Utils::SetUpViewportAndScissor(const gvr::Sizei& framebuf_size,
-                                    const gvr::RenderParams& params) {
-  const gvr::Rectf& rect = params.eye_viewport_bounds;
+                                    const gvr::BufferViewport& params) {
+  const gvr::Rectf& rect = params.GetSourceUv();
   int left = static_cast<int>(rect.left * framebuf_size.width);
   int bottom = static_cast<int>(rect.bottom * framebuf_size.width);
   int width = static_cast<int>((rect.right - rect.left) * framebuf_size.width);
