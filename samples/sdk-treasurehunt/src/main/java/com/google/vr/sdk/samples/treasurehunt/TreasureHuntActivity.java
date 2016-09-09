@@ -46,7 +46,7 @@ import javax.microedition.khronos.egl.EGLConfig;
  * </p><p>
  * The TreasureHunt scene consists of a planar ground grid and a floating
  * "treasure" cube. When the user looks at the cube, the cube will turn gold.
- * While gold, the user can activate the Carboard trigger, which will in turn
+ * While gold, the user can activate the Cardboard trigger, which will in turn
  * randomly reposition the cube.
  */
 public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoRenderer {
