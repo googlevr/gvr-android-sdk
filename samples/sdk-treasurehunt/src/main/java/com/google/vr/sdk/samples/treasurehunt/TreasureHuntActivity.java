@@ -352,7 +352,7 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
             new Runnable() {
               @Override
               public void run() {
-                // Start spatial audio playback of SOUND_FILE at the model postion. The returned
+                // Start spatial audio playback of SOUND_FILE at the model position. The returned
                 //soundId handle is stored and allows for repositioning the sound object whenever
                 // the cube position changes.
                 gvrAudioEngine.preloadSoundFile(SOUND_FILE);
