@@ -1,4 +1,4 @@
-# Using the Google VR SDK on mutiple architectures.
+# Using the Google VR SDK on multiple architectures.
 
 By default, the Google VR SDK targets the armeabi-v7a architecture and the .aar
 files in the **libraries** modules only have armeabi-v7a components. This is
@@ -20,7 +20,7 @@ instructions explain how to include alternative architectures in the
     | grep lib.*so`. The basic sample will only show a single native library at
     **lib/armeabi-v7a/libpanorenderer.so**. For your own app, note all the
     architectures and libraries that your application includes.
-1.  Add other architures to the application. For **sdk-simplepanowidget**, this
+1.  Add other architectures to the application. For **sdk-simplepanowidget**, this
     is done by editing the **samples/sdk-simplepanowidget/build.gradle** file
     and uncommenting the **sourceSets** section which configures the build to
     include the contents of **sdk-simplepanowidget/jniLibs/** in the final APK.
