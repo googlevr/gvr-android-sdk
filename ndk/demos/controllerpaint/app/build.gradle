@@ -1,0 +1,46 @@
+apply plugin: 'com.android.model.application'
+
+model {
+    android {
+        compileSdkVersion = 24
+        buildToolsVersion = "24.0.0"
+
+        defaultConfig.with {
+            applicationId = "com.google.vr.ndk.samples.controllerpaint"
+            minSdkVersion.apiLevel = 19
+            targetSdkVersion.apiLevel = 24
+            versionCode = 1
+            versionName = "1.0"
+        }
+    }
+    android.buildTypes {
+        release {
+            minifyEnabled = false
+            proguardFiles.add(file('proguard-android.txt'))
+        }
+    }
+    android.ndk {
+        moduleName = "app_jni"
+        cppFlags.add("-std=c++11")
+        cppFlags.add("-I" + file("src/main/jni").absolutePath)
+        stl = "gnustl_shared"
+        ldFlags.add("-Lsrc/main/jniLibs/armeabi-v7a")
+        ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
+        ldLibs.add("gvr")
+        ldLibs.add("gvr_audio")
+    }
+    android.productFlavors {
+        create ("arm7") {
+            ndk.abiFilters.add("armeabi-v7a")
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.1.1'
+    compile project(':libraries:common')
+
+    compile 'com.google.protobuf.nano:protobuf-javanano:3.0.0-alpha-7'
+}

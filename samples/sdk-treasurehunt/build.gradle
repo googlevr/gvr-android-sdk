@@ -25,10 +25,19 @@ android {
         versionCode 1
         versionName "1.0"
     }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles.add(file('../../proguard-gvr.txt'))
+        }
+    }
 }
 
 dependencies {
     compile project(':libraries-audio')
     compile project(':libraries-base')
     compile project(':libraries-common')
+
+    compile 'com.google.protobuf.nano:protobuf-javanano:3.0.0-alpha-7'
 }

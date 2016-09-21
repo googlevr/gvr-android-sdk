@@ -9,6 +9,8 @@ import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.util.Pair;
+import android.view.View;
+import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -67,10 +69,6 @@ public class SimpleVrVideoActivity extends Activity {
 
   private int loadVideoStatus = LOAD_VIDEO_STATUS_UNKNOWN;
 
-  public int getLoadVideoStatus() {
-    return loadVideoStatus;
-  }
-
   /** Tracks the file to be loaded across the lifetime of this app. **/
   private Uri fileUri;
 
@@ -90,6 +88,9 @@ public class SimpleVrVideoActivity extends Activity {
    */
   private SeekBar seekBar;
   private TextView statusText;
+
+  private ImageButton volumeToggle;
+  private boolean isMuted;
 
   /**
    * By default, the video will start playing as soon as it is loaded. This can be changed by using
@@ -115,6 +116,13 @@ public class SimpleVrVideoActivity extends Activity {
     videoWidgetView = (VrVideoView) findViewById(R.id.video_view);
     videoWidgetView.setEventListener(new ActivityEventListener());
 
+    volumeToggle = (ImageButton) findViewById(R.id.volume_toggle);
+    volumeToggle.setOnClickListener(new View.OnClickListener() {
+       public void onClick(View v) {
+         setIsMuted(!isMuted);
+       }
+    });
+
     loadVideoStatus = LOAD_VIDEO_STATUS_UNKNOWN;
 
     // Initial launch of the app or an Activity recreation due to rotation.
@@ -132,6 +140,20 @@ public class SimpleVrVideoActivity extends Activity {
     setIntent(intent);
     // Load the new image.
     handleIntent(intent);
+  }
+
+  public int getLoadVideoStatus() {
+    return loadVideoStatus;
+  }
+
+  private void setIsMuted(boolean isMuted) {
+    this.isMuted = isMuted;
+    volumeToggle.setImageResource(isMuted ? R.drawable.volume_off : R.drawable.volume_on);
+    videoWidgetView.setVolume(isMuted ? 0.0f : 1.0f);
+  }
+
+  public boolean isMuted() {
+    return isMuted;
   }
 
   /**

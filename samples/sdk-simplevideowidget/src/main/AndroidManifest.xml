@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.google.vr.sdk.samples.simplevideowidget" >
+      package="com.google.vr.sdk.samples.simplevideowidget"
+      android:versionCode="160921013"
+      android:versionName="1.0.0">
+
     <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="22" />
 
     <!-- The app has largeHeap enabled which is required for loading large files. -->

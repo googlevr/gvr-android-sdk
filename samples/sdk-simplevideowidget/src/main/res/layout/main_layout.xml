@@ -33,19 +33,34 @@
           android:textSize="@dimen/paragragh_text_size"
           android:text="@string/paragraph1" />
 
-      <com.google.vr.sdk.widgets.video.VrVideoView
+        <com.google.vr.sdk.widgets.video.VrVideoView
           android:id="@+id/video_view"
           android:layout_width="match_parent"
           android:scrollbars="@null"
           android:layout_height="250dip"/>
 
-      <!-- Seeking UI & progress indicator.-->
-      <SeekBar
-        android:id="@+id/seek_bar"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_height="32dp"
-        android:layout_width="fill_parent"/>
-      <TextView
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="horizontal" >
+          <!-- Seeking UI & progress indicator.-->
+          <SeekBar
+            android:id="@+id/seek_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_height="32dp"
+            android:layout_weight="8"
+            android:layout_width="0dp"/>
+          <ImageButton
+              android:background="@android:color/transparent"
+              android:id="@+id/volume_toggle"
+              android:paddingTop="4dp"
+              android:paddingStart="0dp"
+              android:layout_width="0dp"
+              android:layout_height="wrap_content"
+              android:layout_weight="1"
+              android:src="@drawable/volume_on"/>
+        </LinearLayout>
+        <TextView
           android:id="@+id/status_text"
           android:text="Loading Video..."
           android:layout_centerInParent="true"

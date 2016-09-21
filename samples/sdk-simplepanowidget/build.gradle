@@ -16,8 +16,8 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+    compileSdkVersion 24
+    buildToolsVersion "24.0.0"
 
     defaultConfig {
         minSdkVersion 19
@@ -26,23 +26,18 @@ android {
         versionName "1.0"
     }
 
-/** See the documentation in libraries/native/README.md regarding architectures.
-    sourceSets {
-        main {
-            jniLibs.srcDir file('jniLibs/')
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles.add(file('../../proguard-gvr.txt'))
         }
     }
-**/
-
-/** Use this to remove the default native library.
-    packagingOptions {
-        exclude('lib/armeabi-v7a/libpanorenderer.so')
-    }
-**/
 }
 
 dependencies {
     compile project(':libraries-common')
     compile project(':libraries-commonwidget')
     compile project(':libraries-panowidget')
+
+    compile 'com.google.protobuf.nano:protobuf-javanano:3.0.0-alpha-7'
 }
