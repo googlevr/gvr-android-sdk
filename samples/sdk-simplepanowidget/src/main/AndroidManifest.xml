@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="com.google.vr.sdk.samples.simplepanowidget"
-      android:versionCode="160929063"
-      android:versionName="1.0.1">
+      android:versionCode="160929073"
+      android:versionName="1.0.2">
     <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="22" />
 
     <!--
