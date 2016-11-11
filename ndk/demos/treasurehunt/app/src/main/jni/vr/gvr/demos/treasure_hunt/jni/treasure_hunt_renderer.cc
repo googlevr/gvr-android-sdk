@@ -471,11 +471,11 @@ int TreasureHuntRenderer::LoadGLShader(int type, const char** shadercode) {
   glCompileShader(shader);
 
   // Get the compilation status.
-  int* compileStatus = new int[1];
-  glGetShaderiv(shader, GL_COMPILE_STATUS, compileStatus);
+  int compileStatus;
+  glGetShaderiv(shader, GL_COMPILE_STATUS, &compileStatus);
 
   // If the compilation failed, delete the shader.
-  if (compileStatus[0] == 0) {
+  if (compileStatus == 0) {
       glDeleteShader(shader);
       shader = 0;
   }
