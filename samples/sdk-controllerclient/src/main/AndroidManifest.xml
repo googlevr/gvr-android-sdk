@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.google.vr.sdk.samples.controllerclient"
-  android:versionCode="160929123"
-  android:versionName="1.0.3">
-  <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="24" />
+  android:versionCode="161121053"
+  android:versionName="1.10.0">
+  <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="24" />
 
   <application
     android:label="ControllerClientActivity"

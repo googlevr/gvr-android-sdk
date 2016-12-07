@@ -13,31 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.model.application'
 
-android {
-    compileSdkVersion 24
-    buildToolsVersion "24.0.0"
+model {
+    android {
+        compileSdkVersion 24
+        buildToolsVersion "24.0.0"
 
-    defaultConfig {
-        minSdkVersion 19
-        targetSdkVersion 22
-        versionCode 1
-        versionName "1.0"
-    }
+        defaultConfig {
+            minSdkVersion.apiLevel 19
+            targetSdkVersion.apiLevel 22
+            versionCode 1
+            versionName "1.0"
+        }
 
-    buildTypes {
-        release {
-            minifyEnabled true
-            proguardFiles.add(file('../../proguard-gvr.txt'))
+        buildTypes {
+            release {
+                minifyEnabled true
+                proguardFiles.add(file('../../proguard-gvr.txt'))
+            }
         }
     }
 }
 
 dependencies {
-    compile project(':libraries-common')
-    compile project(':libraries-commonwidget')
-    compile project(':libraries-panowidget')
-
-    compile 'com.google.protobuf.nano:protobuf-javanano:3.0.0-alpha-7'
+    compile 'com.google.vr:sdk-panowidget:1.10.0'
 }

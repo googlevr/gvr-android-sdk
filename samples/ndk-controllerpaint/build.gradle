@@ -1,0 +1,59 @@
+apply plugin: 'com.android.model.application'
+
+model {
+    android {
+        compileSdkVersion = 24
+        buildToolsVersion = "24.0.0"
+
+        defaultConfig.with {
+            applicationId = "com.google.vr.ndk.samples.controllerpaint"
+            minSdkVersion.apiLevel = 24
+            targetSdkVersion.apiLevel = 24
+            versionCode = 1
+            versionName = "1.0"
+        }
+    }
+    android.buildTypes {
+        release {
+            minifyEnabled = false
+            proguardFiles.add(file('proguard-android.txt'))
+        }
+    }
+    android.ndk {
+        moduleName = "controllerpaint_jni"
+        cppFlags.add("-std=c++11")
+        cppFlags.add("-I" + file("src/main/jni").absolutePath)
+        // Add the necessary GVR headers.
+        cppFlags.add("-I" + file("${project.rootDir}/libraries/headers").absolutePath)
+
+        stl = "gnustl_shared"
+        // Add the necessary GVR .so files for all architectures.
+        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/arm64-v8a").absolutePath)
+        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/armeabi-v7a").absolutePath)
+        ldFlags.add("-L" + file("${project.rootDir}/libraries/jni/x86").absolutePath)
+
+        ldLibs.addAll(["log", "android", "EGL", "GLESv2"])
+
+        // Specific the particular .so files this sample links against.
+        ldLibs.add("gvr")
+    }
+    android.productFlavors {
+        create ("fat") {
+            // This sample builds all architectures by default. Note that if you
+            // only want to build for a specific architecture, you need to
+            // remove the appropriate lines below. You also need to remove the
+            // .so files from the apk using
+            // "packagingOptions {exclude('lib/armeabi-v7a/*')}" in the android
+            // section.
+            ndk.abiFilters.add("arm64-v8a")
+            ndk.abiFilters.add("armeabi-v7a")
+            ndk.abiFilters.add("x86")
+        }
+    }
+}
+
+dependencies {
+    compile 'com.google.vr:sdk-base:1.10.0'
+}
+
+build.dependsOn(':extractNdk')

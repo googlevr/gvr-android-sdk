@@ -1,11 +1,12 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 buildscript {
+    // This configures the Gradle build system, but not the GVR components.
     repositories {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.1.0'
+        classpath 'com.android.tools.build:gradle-experimental:0.8.1'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -14,10 +15,36 @@ buildscript {
 
 allprojects {
     repositories {
+        // For GVR components, the official source of the .aars is the Google
+        // repository.
+        maven {
+            url "http://google.bintray.com/googlevr"
+        }
+        // We also use components from JCenter.
         jcenter()
+        // You can also use a local Maven repository if desired.
+        mavenLocal()
     }
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+// The dependencies for NDK builds live inside the .aar files so they need to
+// be extracted before NDK targets can build.
+task extractAudioSo(type: Copy) {
+    from zipTree("${project.rootDir}/libraries/sdk-audio-1.10.0.aar")
+    into "${project.rootDir}/libraries/"
+    include "jni/**/libgvr_audio.so"
+}
+
+task extractGvrSo(type: Copy) {
+    from zipTree("${project.rootDir}/libraries/sdk-base-1.10.0.aar")
+    into "${project.rootDir}/libraries/"
+    include "jni/**/libgvr.so"
+}
+
+task extractNdk { }
+extractNdk.dependsOn extractAudioSo
+extractNdk.dependsOn extractGvrSo

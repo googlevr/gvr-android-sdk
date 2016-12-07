@@ -1,19 +1,19 @@
 // This is a configuration file used to determine all the projects prior to
 // building them.
 
-// Explicitly load all the libraries and samples using their full path.
-include ':libraries:audio'
-include ':libraries:base'
-include ':libraries:common'
-include ':libraries:commonwidget'
-include ':libraries:controller'
-include ':libraries:panowidget'
-include ':libraries:videowidget'
-
+// Explicitly load all the SDK samples using their full path.
 include ':samples:sdk-controllerclient'
 include ':samples:sdk-simplepanowidget'
 include ':samples:sdk-simplevideowidget'
 include ':samples:sdk-treasurehunt'
+
+// NDK samples are disabled by default because they need the Android NDK to be
+// installed in addition to the SDK. To build them, first extract the NDK .so
+// files by running "./gradlew :extractNdk" which will create a libraries/jni
+// folder. Then uncomment these lines to enable the NDK samples and synchronize
+// Android Studio.
+//include ':samples:ndk-controllerpaint'
+//include ':samples:ndk-treasurehunt'
 
 // Android Studio doesn't preserve nested modules in its Project View. To create
 // a cleaner layout, we reorganize and rename the modules loaded above.
