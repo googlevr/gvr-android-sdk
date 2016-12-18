@@ -1,4 +1,4 @@
-package com.google.vr.sdk.samples.controllerclient;
+package com.google.vr.samples.controllerclient;
 
 import android.content.Context;
 import android.hardware.Sensor;

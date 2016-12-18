@@ -9,7 +9,7 @@
     android:label="ControllerClientActivity"
     android:theme="@android:style/Theme.Holo.Light">
     <activity
-      android:name=".ControllerClientActivity"
+      android:name="com.google.vr.samples.controllerclient.ControllerClientActivity"
       android:screenOrientation="portrait">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
