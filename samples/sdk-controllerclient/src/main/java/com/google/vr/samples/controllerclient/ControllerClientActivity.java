@@ -1,4 +1,4 @@
-package com.google.vr.sdk.samples.controllerclient;
+package com.google.vr.samples.controllerclient;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -9,6 +9,7 @@ import com.google.vr.sdk.controller.Controller;
 import com.google.vr.sdk.controller.Controller.ConnectionStates;
 import com.google.vr.sdk.controller.ControllerManager;
 import com.google.vr.sdk.controller.ControllerManager.ApiStatus;
+import com.google.vr.sdk.samples.controllerclient.R;
 
 /**
  * Minimal example demonstrating how to receive and process Daydream controller input. It connects
@@ -16,8 +17,6 @@ import com.google.vr.sdk.controller.ControllerManager.ApiStatus;
  * controller's sensors. This example only works with Android N and Daydream-ready phones.
  */
 public class ControllerClientActivity extends Activity {
-
-  private static final String TAG = "ControllerClientActivit";
 
   // These two objects are the primary APIs for interacting with the Daydream controller.
   private ControllerManager controllerManager;

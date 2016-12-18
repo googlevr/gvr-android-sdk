@@ -85,7 +85,7 @@
     android:fontFamily="monospace"
     android:text="NO STATUS"/>
 
-  <com.google.vr.sdk.samples.controllerclient.OrientationView
+  <com.google.vr.samples.controllerclient.OrientationView
     android:id="@+id/controller_orientation_view"
     android:layout_width="match_parent"
     android:layout_height="250dip"/>
