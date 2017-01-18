@@ -13,25 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-apply plugin: 'com.android.model.application'
+apply plugin: 'com.android.application'
 
-model {
-    android {
-        compileSdkVersion 24
-        buildToolsVersion "24.0.0"
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
 
-        defaultConfig {
-            minSdkVersion.apiLevel 19
-            targetSdkVersion.apiLevel 24
-            versionCode 1
-            versionName "1.0"
-        }
+    defaultConfig {
+        minSdkVersion 19
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+    }
 
-        buildTypes {
-            release {
-                minifyEnabled true
-                proguardFiles.add(file('../../proguard-gvr.txt'))
-            }
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles.add(file('../../proguard-gvr.txt'))
         }
     }
 }

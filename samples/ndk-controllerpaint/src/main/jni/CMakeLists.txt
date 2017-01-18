@@ -34,5 +34,4 @@ target_link_libraries(controllerpaint_jni
                       EGL
                       GLESv2
                       log
-                      ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../libraries/jni/${ANDROID_ABI}/libgvr.so
-                      ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../libraries/jni/${ANDROID_ABI}/libgvr_audio.so)
+                      ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../libraries/jni/${ANDROID_ABI}/libgvr.so)
