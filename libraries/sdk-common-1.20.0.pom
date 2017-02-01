@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.google.vr</groupId>
-  <artifactId>sdk-controller</artifactId>
-  <version>1.10.0</version>
+  <artifactId>sdk-common</artifactId>
+  <version>1.20.0</version>
   <packaging>aar</packaging>
 
-  <name>Google VR SDK-Controller</name>
+  <name>Google VR SDK-Common</name>
   <url>https://developers.google.com/vr/</url>
 
   <properties>
@@ -16,10 +16,10 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.google.vr</groupId>
-      <artifactId>sdk-base</artifactId>
-      <type>aar</type>
-      <version>1.10.0</version>
+      <groupId>com.google.protobuf.nano</groupId>
+      <artifactId>protobuf-javanano</artifactId>
+      <type>jar</type>
+      <version>3.1.0</version>
     </dependency>
   </dependencies>
 </project>

@@ -253,6 +253,34 @@ extern "C" {
 /// gvr_audio_source_id gvr_audio_create_stereo_sound(gvr_audio_context* api,
 ///                                                  const char* filename);
 ///
+/// **Paused Sounds and Stopped Sounds**
+///
+/// When using sound sources of any of the above types, the user can ensure that
+/// the given source is currently playing before calling.
+///
+/// bool gvr_audio_is_sound_playing(gvr_audio_source_id source_id);
+///
+/// This method will return false if the source has been either paused or
+/// stopped, and true if the source is currently playing.
+///
+/// Once one is finished with a Sound Object and wish to remove it, a call can
+/// be placed to:
+///
+/// void gvr_audio_stop_sound(gvr_audio_source_id source_id);
+///
+/// Once a source has been stopped it is destroyed and the corresponding
+/// gvr_audio_source_id will be invalid. Sources which have been played with the
+/// |looping_enabled| parameter disabled will also be destroyed once playback
+/// of the full audio clip has completed.
+///
+/// To check whether a given gvr_audio_source_id corresponds to a valid source
+/// which exists and is in a playable state, a call can be made to:
+///
+/// bool gvr_audio_is_source_id_valid(gvr_audio_source_id source_id);
+///
+/// By using this pair of methods a user can differentiate between sources which
+/// have been paused and those which have ceased.
+///
 /// **Room effects**
 ///
 /// The GVR Audio System provides a powerful reverb engine which can be used to
@@ -413,7 +441,7 @@ void gvr_audio_unload_soundfile(gvr_audio_context* api, const char* filename);
 /// @return Id of new sound object. Returns kInvalidId if the sound file has not
 ///     been preloaded or if the number of input channels is > 1.
 gvr_audio_source_id gvr_audio_create_sound_object(gvr_audio_context* api,
-                                                 const char* filename);
+                                                  const char* filename);
 
 /// Returns a new ambisonic sound field. Note that the sample needs to be
 /// preloaded and must have 4 separate audio channels. The handle automatically
@@ -425,7 +453,7 @@ gvr_audio_source_id gvr_audio_create_sound_object(gvr_audio_context* api,
 ///     been preloaded or if the number of input channels does not match that
 ///     required.
 gvr_audio_source_id gvr_audio_create_soundfield(gvr_audio_context* api,
-                                               const char* filename);
+                                                const char* filename);
 
 /// Returns a new stereo non-spatialized source, which directly plays back mono
 /// or stereo audio. Note the sample needs to be preloaded and may contain only
@@ -437,7 +465,7 @@ gvr_audio_source_id gvr_audio_create_soundfield(gvr_audio_context* api,
 ///     sound file has not been preloaded or if the number of input channels is
 ///     > 2;
 gvr_audio_source_id gvr_audio_create_stereo_sound(gvr_audio_context* api,
-                                                 const char* filename);
+                                                  const char* filename);
 
 /// Starts the playback of a sound.
 ///
@@ -468,6 +496,23 @@ void gvr_audio_resume_sound(gvr_audio_context* api,
 /// @param source_id Id of the audio source to be stopped.
 void gvr_audio_stop_sound(gvr_audio_context* api,
                           gvr_audio_source_id source_id);
+
+/// Checks if a sound is playing.
+///
+/// @param api Pointer to a gvr_audio_context.
+/// @param source_id Id of the audio source to be checked.
+/// @return True if the sound is being played.
+bool gvr_audio_is_sound_playing(const gvr_audio_context* api,
+                                gvr_audio_source_id source_id);
+
+/// Checks if a |source_id| is valid, and that the corresponding source is in a
+/// playable state. Sources that have been stopped will be reported as invalid.
+///
+/// @param api Pointer to a gvr_audio_context.
+/// @param source_id Id of the audio source to be checked.
+/// @return True if the source exists and is in a playable state.
+bool gvr_audio_is_source_id_valid(const gvr_audio_context* api,
+                                  gvr_audio_source_id source_id);
 
 /// Repositions an existing sound object.
 ///
@@ -504,6 +549,12 @@ void gvr_audio_set_sound_object_distance_rolloff_model(
     gvr_audio_context* api, gvr_audio_source_id sound_object_id,
     int32_t rolloff_model, float min_distance, float max_distance);
 
+/// Changes the master volume.
+///
+/// @param api Pointer to a gvr_audio_context.
+/// @param volume Volume value. Should range from 0 (mute) to 1 (max).
+void gvr_audio_set_master_volume(gvr_audio_context* api, float volume);
+
 /// Changes the volume of an existing sound.
 ///
 /// @param api Pointer to a gvr_audio_context.
@@ -511,14 +562,6 @@ void gvr_audio_set_sound_object_distance_rolloff_model(
 /// @param volume Volume value. Should range from 0 (mute) to 1 (max).
 void gvr_audio_set_sound_volume(gvr_audio_context* api,
                                 gvr_audio_source_id source_id, float volume);
-
-/// Checks if a sound is playing.
-///
-/// @param api Pointer to a gvr_audio_context.
-/// @param source_id Id of the audio source to be checked.
-/// @return True if the sound is being played.
-bool gvr_audio_is_sound_playing(const gvr_audio_context* api,
-                                gvr_audio_source_id source_id);
 
 /// Sets the head pose from a matrix representation of the same.
 ///
@@ -663,7 +706,7 @@ class AudioApi {
     return gvr_audio_create_soundfield(context_, filename.c_str());
   }
 
-  /// Returns a new stereo soound.
+  /// Returns a new stereo sound.
   /// For more information, see gvr_audio_create_stereo_sound().
   AudioSourceId CreateStereoSound(const std::string& filename) {
     return gvr_audio_create_stereo_sound(context_, filename.c_str());
@@ -693,6 +736,18 @@ class AudioApi {
     gvr_audio_stop_sound(context_, source_id);
   }
 
+  /// Checks if a sound is playing.
+  /// For more information, see gvr_audio_is_sound_playing().
+  bool IsSoundPlaying(AudioSourceId source_id) const {
+    return gvr_audio_is_sound_playing(context_, source_id);
+  }
+
+  /// Checks if a source is in a valid playable state.
+  /// For more information, see gvr_audio_is_source_id_valid().
+  bool IsSourceIdValid(AudioSourceId source_id) {
+    return gvr_audio_is_source_id_valid(context_, source_id);
+  }
+
   /// Repositions an existing sound object.
   /// For more information, see gvr_audio_set_sound_object_position().
   void SetSoundObjectPosition(AudioSourceId sound_object_id, float x, float y,
@@ -716,16 +771,16 @@ class AudioApi {
                                       soundfield_rotation);
   }
 
+  /// Changes the master volume.
+  /// For more information, see gvr_audio_set_master_volume().
+  void SetMasterVolume(float volume) {
+    gvr_audio_set_master_volume(context_, volume);
+  }
+
   /// Changes the volume of an existing sound.
   /// For more information, see gvr_audio_set_sound_volume().
   void SetSoundVolume(AudioSourceId source_id, float volume) {
     gvr_audio_set_sound_volume(context_, source_id, volume);
-  }
-
-  /// Checks if a sound is playing.
-  /// For more information, see gvr_audio_is_sound_playing().
-  bool IsSoundPlaying(AudioSourceId source_id) const {
-    return gvr_audio_is_sound_playing(context_, source_id);
   }
 
   /// Sets the head position from a matrix representation.
@@ -768,8 +823,7 @@ class AudioApi {
   /// @name Wrapper manipulation
   /// @{
   /// Creates a C++ wrapper for a C object and takes ownership.
-  explicit AudioApi(gvr_audio_context* context)
-      : context_(context) {}
+  explicit AudioApi(gvr_audio_context* context) : context_(context) {}
 
   /// Returns the wrapped C object. Does not affect ownership.
   gvr_audio_context* cobj() { return context_; }

@@ -183,6 +183,8 @@ enum {
   GVR_CONTROLLER_ENABLE_GESTURES = 1 << 4,
   /// Indicates that controller pose prediction should be enabled.
   GVR_CONTROLLER_ENABLE_POSE_PREDICTION = 1 << 5,
+  /// Indicates that controller position data should be reported.
+  GVR_CONTROLLER_ENABLE_POSITION = 1 << 6,
 };
 
 /// Constants that represent the status of the controller API.
@@ -320,6 +322,41 @@ typedef enum {
 /// Sound object and sound field identifier.
 typedef int32_t gvr_audio_source_id;
 
+/// Supported surround sound formats.
+typedef enum {
+  // Enables to initialize a yet undefined rendering mode.
+  GVR_AUDIO_SURROUND_FORMAT_INVALID = 0,
+
+  // Virtual stereo speakers at -30 degrees and +30 degrees.
+  GVR_AUDIO_SURROUND_FORMAT_SURROUND_STEREO = 1,
+
+  // 5.1 surround sound according to the ITU-R BS 775 speaker configuration
+  // recommendation:
+  //   - Front left (FL) at 30 degrees.
+  //   - Front right (FR) at -30 degrees.
+  //   - Front center (FC) at 0 degrees.
+  //   - Low frequency effects (LFE) at front center at 0 degrees.
+  //   - Left side (LS) at 110 degrees.
+  //   - Right side (RS) at -110 degrees.
+  //
+  // The 5.1 channel input layout must matches AAC: FL, FR, FC, LFE, LS, RS.
+  // Note that this differs from the Vorbis/Opus 5.1 channel layout, which
+  // is: FL, FC, FR, LS, RS, LFE.
+  GVR_AUDIO_SURROUND_FORMAT_SURROUND_FIVE_DOT_ONE = 2,
+
+  // First-order ambisonics (AmbiX format: 4 channels, ACN channel ordering,
+  // SN3D normalization).
+  GVR_AUDIO_SURROUND_FORMAT_FIRST_ORDER_AMBISONICS = 3,
+
+  // Second-order ambisonics (AmbiX format: 9 channels, ACN channel ordering,
+  // SN3D normalization).
+  GVR_AUDIO_SURROUND_FORMAT_SECOND_ORDER_AMBISONICS = 4,
+
+  // Third-order ambisonics (AmbiX format: 16 channels, ACN channel ordering,
+  // SN3D normalization).
+  GVR_AUDIO_SURROUND_FORMAT_THIRD_ORDER_AMBISONICS = 5,
+} gvr_audio_surround_format_type;
+
 /// Valid color formats for swap chain buffers.
 typedef enum {
   /// Equivalent to GL_RGBA8
@@ -396,6 +433,8 @@ const int32_t kControllerEnableGestures =
     static_cast<int32_t>(GVR_CONTROLLER_ENABLE_GESTURES);
 const int32_t kControllerEnablePosePrediction =
     static_cast<int32_t>(GVR_CONTROLLER_ENABLE_POSE_PREDICTION);
+const int32_t kControllerEnablePosition =
+    static_cast<int32_t>(GVR_CONTROLLER_ENABLE_POSITION);
 
 typedef gvr_controller_api_status ControllerApiStatus;
 const ControllerApiStatus kControllerApiOk =
@@ -470,6 +509,7 @@ typedef gvr_audio_rendering_mode AudioRenderingMode;
 typedef gvr_audio_material_type AudioMaterialName;
 typedef gvr_audio_distance_rolloff_type AudioRolloffMethod;
 typedef gvr_audio_source_id AudioSourceId;
+typedef gvr_audio_surround_format_type AudioSurroundFormat;
 
 typedef gvr_color_format_type ColorFormat;
 const ColorFormat kColorFormatRgba8888 =

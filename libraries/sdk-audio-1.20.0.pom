@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.google.vr</groupId>
-  <artifactId>sdk-base</artifactId>
-  <version>1.10.0</version>
+  <artifactId>sdk-audio</artifactId>
+  <version>1.20.0</version>
   <packaging>aar</packaging>
 
-  <name>Google VR SDK-Base</name>
+  <name>Google VR SDK-Audio</name>
   <url>https://developers.google.com/vr/</url>
 
   <properties>
@@ -17,9 +17,9 @@
   <dependencies>
     <dependency>
       <groupId>com.google.vr</groupId>
-      <artifactId>sdk-common</artifactId>
+      <artifactId>sdk-base</artifactId>
       <type>aar</type>
-      <version>1.10.0</version>
+      <version>1.20.0</version>
     </dependency>
   </dependencies>
 </project>

@@ -219,7 +219,8 @@ void gvr_destroy(gvr_context** gvr);
 
 /// Initializes necessary GL-related objects and uses the current thread and
 /// GL context for rendering. Please make sure that a valid GL context is
-/// available when this function is called.
+/// available when this function is called.  This should never be called more
+/// than once on the same GL context (doing so would cause resource leaks).
 ///
 /// @param gvr Pointer to the gvr instance to be initialized.
 void gvr_initialize_gl(gvr_context* gvr);
@@ -234,6 +235,10 @@ void gvr_initialize_gl(gvr_context* gvr);
 /// Note: On Android, this feature can be enabled solely via the GvrLayout Java
 /// instance which (indirectly) owns this gvr_context. The corresponding
 /// method call is GvrLayout.setAsyncReprojectionEnabled().
+///
+/// Note: Because of the above requirements, asynchronous reprojection is only
+/// currently available on Daydream-ready Android devices.  This function will
+/// always return false on other devices.
 ///
 /// @param gvr Pointer to the gvr instance.
 /// @return Whether async reprojection is enabled. Defaults to false.
@@ -452,9 +457,7 @@ int32_t gvr_buffer_viewport_get_external_surface_id(
     const gvr_buffer_viewport* viewport);
 
 /// Sets the ID of the externally-managed Surface texture from which this
-/// viewport reads. The ID is issued by the SurfaceTextureManager. If the ID
-/// is not -1, the distortion renderer will sample color pixels from the
-/// external surface at ID, using the source buffer for texture coords.
+/// viewport reads. The ID is issued by GvrLayout.
 ///
 /// @param viewport The buffer viewport.
 /// @param external_surface_id The ID of the surface to read from.
@@ -611,9 +614,8 @@ void gvr_buffer_spec_set_depth_stencil_format(gvr_buffer_spec* spec,
 /// gvr_swap_chain_destroy() to free GPU resources. The passed gvr_context must
 /// not be destroyed until then.
 ///
-/// Note: Currently, swap chains only support more than one buffer when
-/// asynchronous reprojection is enabled. This restriction will be lifted in a
-/// future release.
+/// Swap chains can have no buffers. This is useful when only displaying
+/// external surfaces. When `count` is zero, `buffers` must be null.
 ///
 /// @param gvr GVR instance for which a swap chain will be created.
 /// @param buffers Array of pixel buffer specifications. Each frame in the

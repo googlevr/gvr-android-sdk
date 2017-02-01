@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google Inc. All rights reserved.
+ * Copyright 2017 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -212,6 +212,9 @@ void DemoApp::OnResume() {
 
 void DemoApp::OnPause() {
   LOGD("DemoApp::OnPause");
+  // The GL context is not preserved when pausing. Delete the drawing VBOs to
+  // avoid dangling GL object IDs.
+  ClearDrawing();
   if (gvr_api_initialized_) gvr_api_->PauseTracking();
   if (controller_api_) controller_api_->Pause();
 }

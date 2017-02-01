@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Video Player</string>
+
+    <string name="drm_error_not_supported">Protected content not supported on API levels below 18</string>
+
+    <string name="drm_error_unsupported_scheme">This device does not support the required DRM scheme</string>
+
+    <string name="drm_error_unknown">An unknown DRM error occurred</string>
+
+    <string name="decoder_init_error">Decoder initialization error</string>
+
+    <string name="playback_error">Cannot play video</string>
+
+    <string name="error_creating_context">Could not create secure context</string>
+</resources>

@@ -1,6 +1,10 @@
 # Sample VR media
 
-The **panoramas** directory contains sample 360 images.
+The **controller** directory contains a model of the Daydream Controller.
+
+The **panoramas** directory contains sample 360 images. See the javadoc for
+**sdk-simplepanowidget**'s **SimpleVrPanoramaActivity** class for information on
+how to view these videos.
 
 * **testRoom1_2kMono.jpg** is a 2k x 1k equirectangular projection of the inside
 of a sphere with heavy, medium, and light gridlines at 90, 15, and 5 degrees,
@@ -10,7 +14,9 @@ axes, respectively.
 * **testRoom1_2kStereo.jpg** is a 2k x 2k top-bottom stereo version of
 **testRoom1_2kMono.jpg**.
 
-The **videos** directory contains sample videos.
+The **videos** directory contains sample videos. See the javadoc for
+**sdk-simplevideowidget**'s **SimpleVrVideoActivity** class for information on
+how to view these videos.
 
 * **testRoom1_1920Mono.mp4** is similar to **testRoom1_2kMono.jpg** with a
 moving sphere & cylinder revolving around the camera at 1 degree per frame and
@@ -25,3 +31,6 @@ support higher resolutions. Alternatively, a 1920x1080 video could have been
 used, but this would result in 1920x540 per eye which results in a noticeable
 difference in horizontal and vertical distortion when resized to a 2:1
 equirectangular projection due to the sharp horizontal and vertical lines.
+
+* There are other video files in the **assets** directory of
+sdk-simplevideowidget.

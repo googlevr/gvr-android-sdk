@@ -3,8 +3,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.google.vr</groupId>
-  <artifactId>sdk-commonwidget</artifactId>
-  <version>1.10.0</version>
+  <artifactId>sdk-videowidget</artifactId>
+  <version>1.20.0</version>
   <packaging>aar</packaging>
 
   <name>Google VR SDK-CommonWidget</name>
@@ -16,10 +16,17 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.google.vr</groupId>
-      <artifactId>sdk-common</artifactId>
+      <groupId>com.google.android.exoplayer</groupId>
+      <artifactId>exoplayer</artifactId>
       <type>aar</type>
-      <version>1.10.0</version>
+      <version>r2.1.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.vr</groupId>
+      <artifactId>sdk-commonwidget</artifactId>
+      <type>aar</type>
+      <version>1.20.0</version>
     </dependency>
   </dependencies>
 </project>

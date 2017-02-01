@@ -407,6 +407,13 @@ int64_t gvr_controller_state_get_last_touch_timestamp(
 int64_t gvr_controller_state_get_last_button_timestamp(
     const gvr_controller_state* state);
 
+// Current (latest) controller simulated position for use with an elbow model.
+gvr_vec3f gvr_controller_state_get_position(const gvr_controller_state* state);
+
+// Returns the timestamp (nanos) when the last position event was received.
+int64_t gvr_controller_state_get_last_position_timestamp(
+    const gvr_controller_state* state);
+
 /// @}
 
 #ifdef __cplusplus
@@ -704,6 +711,17 @@ class ControllerState {
   /// gvr_controller_state_get_last_button_timestamp().
   int64_t GetLastButtonTimestamp() const {
     return gvr_controller_state_get_last_button_timestamp(state_);
+  }
+
+  /// For more information, see gvr_controller_state_get_position().
+  gvr_vec3f GetPosition() const {
+    return gvr_controller_state_get_position(state_);
+  }
+
+  /// For more information, see
+  /// gvr_controller_state_get_last_position_timestamp().
+  int64_t GetLastPositionTimestamp() const {
+    return gvr_controller_state_get_last_position_timestamp(state_);
   }
 
   /// @name Wrapper manipulation

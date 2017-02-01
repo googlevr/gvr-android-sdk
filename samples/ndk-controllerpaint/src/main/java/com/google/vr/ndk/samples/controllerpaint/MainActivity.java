@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Google Inc. All rights reserved.
+ * Copyright 2017 Google Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,8 +97,11 @@ public class MainActivity extends Activity {
     surfaceView = new GLSurfaceView(this);
     surfaceView.setEGLContextClientVersion(2);
     surfaceView.setEGLConfigChooser(8, 8, 8, 0, 0, 0);
-    surfaceView.setPreserveEGLContextOnPause(true);
     surfaceView.setRenderer(renderer);
+
+    // Note that we are not setting setPreserveEGLContextOnPause(true) here,
+    // even though it is recommended.  This is done so that we have at least
+    // one demo that provides some testing coverage for no-preserve contexts.
 
     // Set the GLSurfaceView as the GvrLayout's presentation view.
     gvrLayout.setPresentationView(surfaceView);
