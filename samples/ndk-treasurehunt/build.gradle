@@ -58,4 +58,46 @@ dependencies {
     compile 'com.google.vr:sdk-base:1.20.0'
 }
 
-build.dependsOn(':extractNdk')
+import java.security.MessageDigest
+
+static def generateMD5(File file){
+    MessageDigest.getInstance("MD5").digest(file.bytes).encodeHex().toString();
+}
+
+// The dependencies for NDK builds live inside the .aar files so they need to
+// be extracted before NDK targets can build.
+task extractGoogleVrNDK {
+    outputs.upToDateWhen {
+        if(new File("${project.rootDir}/Libraries/MD5SUM.properties").exists()) {
+            Properties props = new Properties();
+            props.load(new FileInputStream("${project.rootDir}/Libraries/MD5SUM.properties"));
+            return props.getProperty("MD5") == generateMD5(new File(props.getProperty("file")))
+        }
+        else {
+            return false
+        }
+    }
+    doLast {
+        def outFile = new File("${project.rootDir}/Libraries/MD5SUM.properties")
+        String outString = new String();
+        configurations.compile.each {
+            if (it.name.contains("sdk-base") || it.name.contains("sdk-audio")) {
+                def file = it.absoluteFile
+                copy {
+                    from zipTree(file)
+                    into "${project.rootDir}/Libraries"
+                    include "jni/**/libgvr*.so"
+                }
+                outString = "file = " + file.absolutePath + "\n"
+                outString += "MD5 = " + generateMD5(file) + "\n"
+            }
+        }
+        outFile.write(outString)
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name.startsWith('generate')) {
+        task.dependsOn extractGoogleVrNDK
+    }
+}
