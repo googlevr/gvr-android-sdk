@@ -16,7 +16,7 @@
 package com.google.vr.sdk.samples.videoplayer;
 
 /**
- * Use the below flags to test differernt use cases.
+ * Use the below flags to test different use cases.
  * With both flags set to false, the movie should play on any device.
  * With both flags set to true, the movie will play only on phones that support
  * EGL_EXT_protected_content.

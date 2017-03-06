@@ -25,15 +25,17 @@
 extern "C" {
 #endif  // __cplusplus
 
-/// @defgroup Audio Surround Renderer API
+/// @defgroup AudioSurround Surround Renderer API
 /// @brief This is the GVR Binaural Surround Renderer C API which reads in
 /// PCM buffers of surround sound as well as ambisonic soundfield content
-/// to render binaural stereo. In contrast to GVR's spatial audio API, the
-/// surround renderer API is designed to be integrated into media players to
+/// to render binaural stereo. In contrast to GVR's Spatial Audio API, the
+/// Surround Renderer API is designed to be integrated into media players to
 /// enable head-tracked binaural audio in VR movie and 360 video experiences. It
 /// accepts input and output buffers of arbitrary frame size. However note that
 /// the binaural output is only generated when the number of input frames exceed
 /// the process_num_frames size specified during construction.
+
+/// @{
 
 typedef struct gvr_audio_surround_context_ gvr_audio_surround_context;
 

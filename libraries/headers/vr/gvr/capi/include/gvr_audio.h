@@ -98,24 +98,11 @@ extern "C" {
 /// movement, it is important to update the listener's head orientation in the
 /// graphics callback using the head orientation matrix.
 ///
-/// The following methods can be used to control the listener’s head position
+/// The following method is used to control the listener’s head position
 /// and orientation with the audio engine:
 ///
-///     void gvr_audio_set_head_position(gvr_audio_context* api, float x,
-///                                      float y, float z);
-/// or
-///
-///     void gvr_audio_set_head_position_gvr(gvr_audio_context* api,
-///                                          const gvr_vec3f& position);
-///
-/// and
-///
-///     void gvr_audio_set_head_rotation(gvr_audio_context* api,
-///                                      float x, float y, float z, float w);
-/// or
-///
-///     void gvr_audio_set_head_rotation_gvr(gvr_audio_context* api,
-///                                          const gvr_quatf& rotation);
+///     void gvr_audio_set_head_pose(gvr_audio_context* api,
+///                                  gvr_mat4f head_pose_matrix);
 ///
 /// **Preloading Sounds**
 ///
@@ -239,8 +226,7 @@ extern "C" {
 ///
 /// void gvr_audio_set_soundfield_rotation(gvr_audio_context* api,
 ///                                        gvr_audio_source_id soundfield_id,
-///                                        const gvr_quatf&
-///                                        soundfield_rotation);
+///                                        gvr_quatf soundfield_rotation);
 ///
 /// **Direct Playback of Stereo or Mono Sounds**
 ///
@@ -532,7 +518,7 @@ void gvr_audio_set_sound_object_position(gvr_audio_context* api,
 /// @param soundfield_rotation Quaternion representing the soundfield rotation.
 void gvr_audio_set_soundfield_rotation(gvr_audio_context* api,
                                        gvr_audio_source_id soundfield_id,
-                                       const gvr_quatf& soundfield_rotation);
+                                       gvr_quatf soundfield_rotation);
 
 /// Sets the given sound object source's distance attenuation method with
 /// minimum and maximum distances. Maximum distance must be greater than the
@@ -567,8 +553,14 @@ void gvr_audio_set_sound_volume(gvr_audio_context* api,
 ///
 /// @param api Pointer to a gvr_audio_context on which to set the pose.
 /// @param head_pose_matrix Matrix representing the head transform to be set.
+///     This matrix is three homogeneous basis vectors stored contiguously in
+///     memory, followed by a translation component. This means that
+///     head_pose_matrix[i] stores the ith basis matrix for 0 <= i <= 3 with
+///     any translation component stored the 4th place.  Note that with three
+///     degrees of freedom, the translation component is normally limited to
+///     what is introduced by a neck model.
 void gvr_audio_set_head_pose(gvr_audio_context* api,
-                             const gvr_mat4f& head_pose_matrix);
+                             gvr_mat4f head_pose_matrix);
 
 /// Turns on/off the room reverberation effect.
 ///

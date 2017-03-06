@@ -45,6 +45,7 @@ public class ControllerClientActivity extends Activity {
   private TextView controllerOrientationText;
   private TextView controllerTouchpadView;
   private TextView controllerButtonView;
+  private TextView controllerBatteryView;
 
   // This is a 3D representation of the controller's pose. See its comments for more information.
   private OrientationView controllerOrientationView;
@@ -67,6 +68,7 @@ public class ControllerClientActivity extends Activity {
     controllerOrientationText = (TextView) findViewById(R.id.controller_orientation_text);
     controllerTouchpadView = (TextView) findViewById(R.id.controller_touchpad_view);
     controllerButtonView = (TextView) findViewById(R.id.controller_button_view);
+    controllerBatteryView = (TextView) findViewById(R.id.controller_battery_view);
 
     // Start the ControllerManager and acquire a Controller object which represents a single
     // physical controller. Bind our listener to the ControllerManager and Controller.
@@ -161,6 +163,9 @@ public class ControllerClientActivity extends Activity {
           controller.clickButtonState ? "T" : " ",
           controller.volumeUpButtonState ? "+" : " ",
           controller.volumeDownButtonState ? "-" : " "));
+      controllerBatteryView.setText(String.format("[level: %s][charging: %s]",
+          Controller.BatteryLevels.toString(controller.batteryLevelBucket),
+          controller.isCharging));
     }
   }
 }

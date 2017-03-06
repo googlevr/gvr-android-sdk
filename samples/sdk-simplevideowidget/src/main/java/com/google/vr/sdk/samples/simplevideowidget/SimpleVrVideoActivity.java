@@ -59,8 +59,15 @@ import java.io.IOException;
  * VrVideoView.Options.inputFormat to FORMAT_HLS. e.g.
  *   adb shell am start -a android.intent.action.VIEW \
  *     -n com.google.vr.sdk.samples.simplevideowidget/.SimpleVrVideoActivity \
- *     -d "file:///android_asset/iceland.m3u8" \
+ *     -d "file:///android_asset/hls/iceland.m3u8" \
  *     --ei inputFormat 2 --ei inputType 2
+ *
+ * <p>To load MPEG-DASH files add "--ei inputFormat 3" to pass in an integer extra which will set
+ * VrVideoView.Options.inputFormat to FORMAT_DASH. e.g.
+ *   adb shell am start -a android.intent.action.VIEW \
+ *     -n com.google.vr.sdk.samples.simplevideowidget/.SimpleVrVideoActivity \
+ *     -d "file:///android_asset/dash/congo_dash.mpd" \
+ *     --ei inputFormat 3 --ei inputType 2
  *
  * <p>To specify that the video is of type stereo over under (has images for left and right eyes),
  * add "--ei inputType 2" to pass in an integer extra which will set VrVideoView.Options.inputType
@@ -145,9 +152,10 @@ public class SimpleVrVideoActivity extends Activity {
 
     volumeToggle = (ImageButton) findViewById(R.id.volume_toggle);
     volumeToggle.setOnClickListener(new View.OnClickListener() {
-       public void onClick(View v) {
-         setIsMuted(!isMuted);
-       }
+      @Override
+      public void onClick(View v) {
+        setIsMuted(!isMuted);
+      }
     });
 
     loadVideoStatus = LOAD_VIDEO_STATUS_UNKNOWN;
@@ -313,7 +321,7 @@ public class SimpleVrVideoActivity extends Activity {
      */
     @Override
     public void onLoadSuccess() {
-      Log.i(TAG, "Sucessfully loaded video " + videoWidgetView.getDuration());
+      Log.i(TAG, "Successfully loaded video " + videoWidgetView.getDuration());
       loadVideoStatus = LOAD_VIDEO_STATUS_SUCCESS;
       seekBar.setMax((int) videoWidgetView.getDuration());
       updateStatusText();

@@ -50,6 +50,14 @@ typedef enum {
   GVR_VIEWER_TYPE_DAYDREAM = 1,
 } gvr_viewer_type;
 
+// Types of VR-specific features which may or may not be supported on the
+// underlying platform.
+typedef enum {
+  // Asynchronous reprojection warps the app's rendered frame using the most
+  // recent head pose just before pushing the frame to the display.
+  GVR_FEATURE_ASYNC_REPROJECTION = 0,
+} gvr_feature;
+
 /// @}
 
 /// Version information for the Google VR API.
@@ -185,6 +193,8 @@ enum {
   GVR_CONTROLLER_ENABLE_POSE_PREDICTION = 1 << 5,
   /// Indicates that controller position data should be reported.
   GVR_CONTROLLER_ENABLE_POSITION = 1 << 6,
+  /// Indicates that controller battery data should be reported.
+  GVR_CONTROLLER_ENABLE_BATTERY = 1 << 7,
 };
 
 /// Constants that represent the status of the controller API.
@@ -238,6 +248,21 @@ typedef enum {
   /// this many elements due to the inclusion of a dummy "none" button.
   GVR_CONTROLLER_BUTTON_COUNT = 6,
 } gvr_controller_button;
+
+/// Controller battery states.
+typedef enum {
+  GVR_CONTROLLER_BATTERY_LEVEL_UNKNOWN = 0,
+  GVR_CONTROLLER_BATTERY_LEVEL_CRITICAL_LOW = 1,
+  GVR_CONTROLLER_BATTERY_LEVEL_LOW = 2,
+  GVR_CONTROLLER_BATTERY_LEVEL_MEDIUM = 3,
+  GVR_CONTROLLER_BATTERY_LEVEL_ALMOST_FULL = 4,
+  GVR_CONTROLLER_BATTERY_LEVEL_FULL = 5,
+
+  /// Note: there are 5 distinct levels, but there are 6 due to the inclusion
+  /// of an UNKNOWN state before any battery information is collected, etc.
+  GVR_CONTROLLER_BATTERY_LEVEL_COUNT = 6,
+} gvr_controller_battery_level;
+
 
 /// @}
 
@@ -435,6 +460,8 @@ const int32_t kControllerEnablePosePrediction =
     static_cast<int32_t>(GVR_CONTROLLER_ENABLE_POSE_PREDICTION);
 const int32_t kControllerEnablePosition =
     static_cast<int32_t>(GVR_CONTROLLER_ENABLE_POSITION);
+const int32_t kControllerEnableBattery =
+    static_cast<int32_t>(GVR_CONTROLLER_ENABLE_BATTERY);
 
 typedef gvr_controller_api_status ControllerApiStatus;
 const ControllerApiStatus kControllerApiOk =
@@ -477,6 +504,26 @@ const ControllerButton kControllerButtonVolumeDown =
     static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_VOLUME_DOWN);
 const ControllerButton kControllerButtonCount =
     static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_COUNT);
+
+typedef gvr_controller_battery_level ControllerBatteryLevel;
+const ControllerBatteryLevel kControllerBatteryLevelUnknown =
+    static_cast<ControllerBatteryLevel>(
+        GVR_CONTROLLER_BATTERY_LEVEL_UNKNOWN);
+const ControllerBatteryLevel kControllerBatteryLevelCriticalLow =
+    static_cast<ControllerBatteryLevel>(
+        GVR_CONTROLLER_BATTERY_LEVEL_CRITICAL_LOW);
+const ControllerBatteryLevel kControllerBatteryLevelLow =
+    static_cast<ControllerBatteryLevel>(
+        GVR_CONTROLLER_BATTERY_LEVEL_LOW);
+const ControllerBatteryLevel kControllerBatteryLevelMedium =
+    static_cast<ControllerBatteryLevel>(
+        GVR_CONTROLLER_BATTERY_LEVEL_MEDIUM);
+const ControllerBatteryLevel kControllerBatteryLevelAlmostFull =
+    static_cast<ControllerBatteryLevel>(
+        GVR_CONTROLLER_BATTERY_LEVEL_ALMOST_FULL);
+const ControllerBatteryLevel kControllerBatteryLevelFull =
+    static_cast<ControllerBatteryLevel>(
+        GVR_CONTROLLER_BATTERY_LEVEL_FULL);
 
 /// An uninitialized external surface ID.
 const int32_t kUninitializedExternalSurface = GVR_BUFFER_INDEX_EXTERNAL_SURFACE;

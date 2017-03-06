@@ -39,11 +39,9 @@ public class VideoSceneRenderer implements Renderer {
 
   private static final String TAG = VideoSceneRenderer.class.getSimpleName();
 
-  // The buffer index of the color buffer, The app's frame color data should be drawn when this
-  // buffer is bound.
-  public static final int INDEX_COLOR_BUFFER = 0;
-  // The number of textured quads to draw in the scene. Used for the loading texture.
-  private static final int NUM_SPRITE_TEXTURES = 1;
+  // The index of the scene buffer within the frame. The app's scene color data should be drawn when
+  // this buffer is bound.
+  public static final int INDEX_SCENE_BUFFER = 0;
   // The scene's clipping planes.
   private static final float NEAR_PLANE = 1.0f;
   private static final float FAR_PLANE = 10.0f;
@@ -57,20 +55,19 @@ public class VideoSceneRenderer implements Renderer {
   private final long predictionOffsetNanos;
 
   private SwapChain swapChain;
-  private volatile int videoSurfaceID;
   private VideoScene videoScene;
-  private boolean shouldShowVideo;
+  private volatile int videoSurfaceID = BufferViewport.EXTERNAL_SURFACE_ID_NONE;
+  private volatile boolean shouldShowVideo = false;
 
-  private final float[] head = new float[16];
+  private final float[] headFromWorld = new float[16];
   private final float[] eyeFromHead = new float[16];
-  private final float[] eyePerspective = new float[16];
-  private final float[][] eyeView = new float[2][16];
-  private final float[][] eyeFromQuad = new float[2][16];
+  private final float[][] eyeFromWorld = new float[2][16];
   private final float[] worldFromQuad = new float[16];
-  private final float[] viewFromQuad = new float[16];
+  // Projection matrix matching the rendered FOV.
+  private final float[] eyeProjection = new float[16];
+  private final float[] perspectiveFromWorld = new float[16];
   private final RectF eyeFov = new RectF();
   private final RectF eyeUv = new RectF();
-  private final RectF videoUv = new RectF(0.f, 1.f, 1.f, 0.f);
   private final Point targetSize = new Point();
 
   VideoSceneRenderer(Context context, GvrApi api) {
@@ -80,10 +77,6 @@ public class VideoSceneRenderer implements Renderer {
     viewportList = api.createBufferViewportList();
     scratchViewport = api.createBufferViewport();
     predictionOffsetNanos = TimeUnit.MILLISECONDS.toNanos(50);
-
-    videoSurfaceID = BufferViewport.EXTERNAL_SURFACE_ID_NONE;
-    shouldShowVideo = false;
-    Matrix.setIdentityM(worldFromQuad, 0);
   }
 
   /** Shuts down the renderer. Can be called from any thread. */
@@ -107,6 +100,9 @@ public class VideoSceneRenderer implements Renderer {
    */
   public void setVideoTransform(float[] transform) {
     System.arraycopy(transform, 0, worldFromQuad, 0, 16);
+    if (videoScene != null) {
+      videoScene.setVideoTransform(transform);
+    }
   }
 
   /**
@@ -121,6 +117,9 @@ public class VideoSceneRenderer implements Renderer {
    */
   public void setVideoSurfaceId(int id) {
     videoSurfaceID = id;
+    if (videoScene != null) {
+      videoScene.setVideoSurfaceId(id);
+    }
   }
 
   /**
@@ -145,15 +144,11 @@ public class VideoSceneRenderer implements Renderer {
     GLUtil.checkGlError(TAG, "initializeGl");
 
     api.getMaximumEffectiveRenderTargetSize(targetSize);
-    // Because we are using 2X MSAA, we can render to half as many pixels and achieve
-    // similar quality. Scale each dimension by sqrt(2)/2 ~= 7/10ths.
-    targetSize.x = (7 * targetSize.x) / 10;
-    targetSize.y = (7 * targetSize.y) / 10;
 
     BufferSpec[] specList = new BufferSpec[1];
     BufferSpec bufferSpec = api.createBufferSpec();
     bufferSpec.setSize(targetSize);
-    specList[INDEX_COLOR_BUFFER] = bufferSpec;
+    specList[INDEX_SCENE_BUFFER] = bufferSpec;
 
     swapChain = api.createSwapChain(specList);
     for (BufferSpec spec : specList) {
@@ -170,56 +165,42 @@ public class VideoSceneRenderer implements Renderer {
   public void onDrawFrame(GL10 gl) {
     Frame frame = swapChain.acquireFrame();
 
-    api.getHeadSpaceFromStartSpaceRotation(head, System.nanoTime() + predictionOffsetNanos);
+    api.getHeadSpaceFromStartSpaceRotation(
+        headFromWorld, System.nanoTime() + predictionOffsetNanos);
     for (int eye = 0; eye < 2; ++eye) {
       api.getEyeFromHeadMatrix(eye, eyeFromHead);
-      Matrix.multiplyMM(eyeView[eye], 0, eyeFromHead, 0, head, 0);
-      Matrix.multiplyMM(eyeFromQuad[eye], 0, eyeView[eye], 0, worldFromQuad, 0);
+      Matrix.multiplyMM(eyeFromWorld[eye], 0, eyeFromHead, 0, headFromWorld, 0);
     }
     // Populate the BufferViewportList to describe to the GvrApi how the color buffer
     // and video frame ExternalSurface buffer should be rendered. The eyeFromQuad matrix
     // describes how the video Surface frame should be transformed and rendered in eye space.
     populateBufferViewportList();
-
-    drawVideoScene(gl, frame);
-
-    // Submit the color buffer the and video Surface frame info to the GvrApi.
-    frame.submit(viewportList, head);
+    drawScene(gl, frame);
+    frame.submit(viewportList, headFromWorld);
     GLUtil.checkGlError(TAG, "submit frame");
   }
 
   private void initVideoScene() {
-    int[] textureIds = new int[NUM_SPRITE_TEXTURES];
-    GLES20.glGenTextures(NUM_SPRITE_TEXTURES, textureIds, 0);
-
-    // Create the texture used by the video background logo.
-    GLUtil.createResourceTexture(context, textureIds[0], R.raw.loading_bg);
-    final TextureHandle videoBackgroundTexture = new TextureHandle(textureIds[0]);
-
     // Initialize the video scene. Draws the app's color buffer.
-    videoScene = new VideoScene(videoBackgroundTexture);
+    videoScene = new VideoScene();
+    videoScene.prepareGLResources(context);
     videoScene.setHasVideoPlaybackStarted(shouldShowVideo);
-
-    GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+    videoScene.setVideoSurfaceId(videoSurfaceID);
+    videoScene.setVideoTransform(worldFromQuad);
   }
 
   private void populateBufferViewportList() {
     // Get the recommended BufferViewports. The recommended list should be populated with two
     // BufferViewports, one per eye.
     api.getRecommendedBufferViewports(recommendedList);
-    // To render video, for each eye, add a BufferViewport for the video surface. The video
-    // viewports have to be at the start of the list, so that they are under the color
-    // viewports.
-    // Note: if the buffer is not yet valid (i.e. no video frame has been produced yet), the
-    // GvrApi instance will skip rendering the video layer until it is ready. This renderer
-    // could also wait for the first ExternalSurface.onFrameAvaliable callback before including
-    // the BufferViewports that reference the video Surface.
+    // To render video, for each eye, add a BufferViewport for the video surface. This object
+    // determines where the video content appears in the scene. The video viewports have to be at
+    // the start of the list, so that they are under the color viewports.
+    // Note: GvrApi will skip viewports that reference surfaces that did not yet have any frames
+    // drawn to them.
     for (int eye = 0; eye < 2; eye++) {
       recommendedList.get(eye, scratchViewport);
-      scratchViewport.setSourceUv(videoUv);
-      scratchViewport.setSourceBufferIndex(BufferViewport.BUFFER_INDEX_EXTERNAL_SURFACE);
-      scratchViewport.setExternalSurfaceId(videoSurfaceID);
-      scratchViewport.setTransform(eyeFromQuad[eye]);
+      videoScene.updateViewport(scratchViewport, eyeFromWorld[eye]);
       viewportList.set(eye, scratchViewport);
     }
     // Add the color viewport for each eye.
@@ -229,44 +210,50 @@ public class VideoSceneRenderer implements Renderer {
       viewportList.set(2 + eye, scratchViewport);
     }
   }
-
-  private void drawVideoScene(GL10 gl, Frame frame) {
-    // Draw the color buffer.
-    frame.bindBuffer(INDEX_COLOR_BUFFER);
+  
+  private void drawScene(GL10 gl, Frame frame) {
+    // Draw the scene framebuffer.
+    frame.bindBuffer(INDEX_SCENE_BUFFER);
     // Draw background color
     GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+    GLES20.glDisable(GLES20.GL_DEPTH_TEST);
 
     GLUtil.checkGlError(TAG, "new frame");
 
     for (int eye = 0; eye < 2; ++eye) {
-      // The viewport list contents are:
-      // 0: left eye video, 1: right eye video, 2: left eye color, 3: right eye color.
-      // The color viewport will be drawn on top of the video layer and will contain a transparent
-      // hole where the video will be. This can be used to render controls on top of the video.
-      int colorViewportIndex = 2 + eye;
-      viewportList.get(colorViewportIndex, scratchViewport);
-      scratchViewport.getSourceUv(eyeUv);
-      scratchViewport.getSourceFov(eyeFov);
-
-      int x = (int) (eyeUv.left * targetSize.x);
-      int y = (int) (eyeUv.bottom * targetSize.y);
-      int width = (int) (eyeUv.width() * targetSize.x);
-      int height = (int) (-eyeUv.height() * targetSize.y);
-      gl.glViewport(x, y, width, height);
-
-      float l = (float) -Math.tan(Math.toRadians(eyeFov.left)) * NEAR_PLANE;
-      float r = (float) Math.tan(Math.toRadians(eyeFov.right)) * NEAR_PLANE;
-      float b = (float) -Math.tan(Math.toRadians(eyeFov.bottom)) * NEAR_PLANE;
-      float t = (float) Math.tan(Math.toRadians(eyeFov.top)) * NEAR_PLANE;
-      Matrix.frustumM(eyePerspective, 0, l, r, b, t, NEAR_PLANE, FAR_PLANE);
-      Matrix.multiplyMM(viewFromQuad, 0, eyePerspective, 0, eyeFromQuad[eye], 0);
-
-      // Draw the video scene.
-      videoScene.draw(viewFromQuad);
-
-      GLUtil.checkGlError(TAG, "draw eye");
+      drawSceneForEye(gl, eye);
     }
+    // Finalize the framebuffer. This discards depth and stencil buffer.
     frame.unbind();
+  }
+
+  private void drawSceneForEye(GL10 gl, int eye) {
+    // The viewport list contents are:
+    // 0: left eye video, 1: right eye video, 2: left eye color, 3: right eye color.
+    // The color viewport will be drawn on top of the video layer and will contain a transparent
+    // hole where the video will be. This can be used to render controls on top of the video.
+    int colorViewportIndex = 2 + eye;
+    viewportList.get(colorViewportIndex, scratchViewport);
+    scratchViewport.getSourceUv(eyeUv);
+    scratchViewport.getSourceFov(eyeFov);
+
+    int x = (int) (eyeUv.left * targetSize.x);
+    int y = (int) (eyeUv.bottom * targetSize.y);
+    int width = (int) (eyeUv.width() * targetSize.x);
+    int height = (int) (-eyeUv.height() * targetSize.y);
+    gl.glViewport(x, y, width, height);
+
+    float l = (float) -Math.tan(Math.toRadians(eyeFov.left)) * NEAR_PLANE;
+    float r = (float) Math.tan(Math.toRadians(eyeFov.right)) * NEAR_PLANE;
+    float b = (float) -Math.tan(Math.toRadians(eyeFov.bottom)) * NEAR_PLANE;
+    float t = (float) Math.tan(Math.toRadians(eyeFov.top)) * NEAR_PLANE;
+    Matrix.frustumM(eyeProjection, 0, l, r, b, t, NEAR_PLANE, FAR_PLANE);
+    Matrix.multiplyMM(perspectiveFromWorld, 0, eyeProjection, 0, eyeFromWorld[eye], 0);
+
+    // Draw the video scene.
+    videoScene.draw(perspectiveFromWorld);
+
+    GLUtil.checkGlError(TAG, "draw eye");
   }
 }

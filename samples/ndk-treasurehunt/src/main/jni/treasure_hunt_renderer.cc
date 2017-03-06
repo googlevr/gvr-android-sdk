@@ -319,7 +319,9 @@ TreasureHuntRenderer::TreasureHuntRenderer(
 
 TreasureHuntRenderer::~TreasureHuntRenderer() {
   // Join the audio initialization thread in case it still exists.
-  audio_initialization_thread_.join();
+  if (audio_initialization_thread_.joinable()) {
+    audio_initialization_thread_.join();
+  }
 }
 
 void TreasureHuntRenderer::InitializeGl() {

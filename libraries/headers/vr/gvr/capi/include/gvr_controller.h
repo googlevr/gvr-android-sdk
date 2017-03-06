@@ -368,9 +368,9 @@ bool gvr_controller_state_get_touch_up(const gvr_controller_state* state);
 /// true then the `orientation` field is already relative to the new center.
 bool gvr_controller_state_get_recentered(const gvr_controller_state* state);
 
-/// Returns whether the recenter flow is currently in progress.
-///
 /// @deprecated Use gvr_controller_state_get_recentered instead.
+///
+/// Returns whether the recenter flow is currently in progress.
 bool gvr_controller_state_get_recentering(const gvr_controller_state* state);
 
 /// Returns whether the given button is currently pressed.
@@ -413,6 +413,27 @@ gvr_vec3f gvr_controller_state_get_position(const gvr_controller_state* state);
 // Returns the timestamp (nanos) when the last position event was received.
 int64_t gvr_controller_state_get_last_position_timestamp(
     const gvr_controller_state* state);
+
+/// Returns whether the controller battery is currently charging.
+/// This may not be real time information and may be slow to be updated.
+bool gvr_controller_state_get_battery_charging(
+    const gvr_controller_state* state);
+
+/// Returns the bucketed controller battery level.
+/// Note this is a gvr_controller_battery_level and not a percent.
+int32_t gvr_controller_state_get_battery_level(
+    const gvr_controller_state* state);
+
+/// Returns the timestamp (nanos) when the last battery event was received.
+int64_t gvr_controller_state_get_last_battery_timestamp(
+    const gvr_controller_state* state);
+
+/// Convenience to convert a battery level to string. The returned pointer
+/// is static and valid throughout the lifetime of the application.
+///
+/// @param level The gvr_controller_battery_level to convert to string.
+/// @return A pointer to a string that describes the value.
+const char* gvr_controller_battery_level_to_string(int32_t level);
 
 /// @}
 
@@ -572,6 +593,10 @@ class ControllerApi {
     return gvr_controller_button_to_string(button);
   }
 
+  static const char* ToString(ControllerBatteryLevel level) {
+    return gvr_controller_battery_level_to_string(level);
+  }
+
   /// @name Wrapper manipulation
   /// @{
   /// Creates a C++ wrapper for a C object and takes ownership.
@@ -722,6 +747,22 @@ class ControllerState {
   /// gvr_controller_state_get_last_position_timestamp().
   int64_t GetLastPositionTimestamp() const {
     return gvr_controller_state_get_last_position_timestamp(state_);
+  }
+
+  /// For more information, see gvr_controller_state_get_battery_charging
+  bool GetBatteryCharging() const {
+    return gvr_controller_state_get_battery_charging(state_);
+  }
+
+  /// For more information, see gvr_controller_state_get_battery_level
+  ControllerBatteryLevel GetBatteryLevel() const {
+    return static_cast<ControllerBatteryLevel>(
+        gvr_controller_state_get_battery_level(state_));
+  }
+
+  /// For more information, see gvr_controller_state_get_last_battery_timestamp
+  int64_t GetLastBatteryTimestamp() const {
+    return gvr_controller_state_get_last_battery_timestamp(state_);
   }
 
   /// @name Wrapper manipulation

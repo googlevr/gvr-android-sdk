@@ -85,6 +85,22 @@
     android:fontFamily="monospace"
     android:text="NO STATUS"/>
 
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/header_padding"
+    android:background="@color/header_background"
+    android:text="Battery:"
+    android:textColor="@color/header_text"/>
+
+  <TextView
+    android:id="@+id/controller_battery_view"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:fontFamily="monospace"
+    android:text="NO STATUS"/>
+
   <com.google.vr.sdk.samples.controllerclient.OrientationView
     android:id="@+id/controller_orientation_view"
     android:layout_width="match_parent"

@@ -299,6 +299,11 @@ void DemoApp::OnDrawFrame() {
   const int32_t old_status = controller_state_.GetApiStatus();
   const int32_t old_connection_state = controller_state_.GetConnectionState();
 
+  const gvr::ControllerBatteryLevel old_battery_level =
+      controller_state_.GetBatteryLevel();
+  const bool old_battery_charging =
+      controller_state_.GetBatteryCharging();
+
   // Read current controller state.
   controller_state_.Update(*controller_api_);
 
@@ -309,6 +314,13 @@ void DemoApp::OnDrawFrame() {
          gvr_controller_api_status_to_string(controller_state_.GetApiStatus()),
          gvr_controller_connection_state_to_string(
              controller_state_.GetConnectionState()));
+  }
+  // Print new controller battery level and charging state, if they changed.
+  if (controller_state_.GetBatteryLevel() != old_battery_level ||
+      controller_state_.GetBatteryCharging() != old_battery_charging) {
+    LOGD("DemoApp: controller battery level: %s, charging: %s",
+         gvr::ControllerApi::ToString(controller_state_.GetBatteryLevel()),
+         controller_state_.GetBatteryCharging() ? "true" : "false");
   }
 
   gvr::Frame frame = swapchain_->AcquireFrame();
@@ -545,8 +557,10 @@ void DemoApp::DrawPaintedGeometry(const gvr::Mat4f& view_matrix,
   }
 
   // Draw recent geometry (directly from main memory).
-  DrawObject(mvp, kColors[selected_color_], recent_geom_.data(), 0,
-             recent_geom_vertex_count_);
+  if (recent_geom_vertex_count_ > 0) {
+    DrawObject(mvp, kColors[selected_color_], recent_geom_.data(), 0,
+               recent_geom_vertex_count_);
+  }
 }
 
 void DemoApp::CommitToVbo() {

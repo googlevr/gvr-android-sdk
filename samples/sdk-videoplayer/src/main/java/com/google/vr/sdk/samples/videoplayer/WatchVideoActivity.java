@@ -116,15 +116,20 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
           @Override
           public void onSurfaceAvailable(Surface surface) {
             // Set the surface for the video player to output video frames to. Video playback
-            // is started when the Surface is set.
-            videoPlayer.setSurface(surface);
+            // is started when the Surface is set. Note that this callback is *asynchronous* with
+            // respect to the Surface becoming available, in which case videoPlayer may be null due
+            // to the Activity having been stopped.
+            if (videoPlayer != null) {
+              videoPlayer.setSurface(surface);
+            }
           }
 
           @Override
           public void onFrameAvailable() {
-            // If this is the first frame, signal to remove the loading splash screen, and
-            // draw alpha 0 in the color buffer where the video will be drawn by the GvrApi.
-            if (!hasFirstFrame) {
+            // If this is the first frame, and the Activity is still in the foreground, signal to
+            // remove the loading splash screen, and draw alpha 0 in the color buffer where the
+            // video will be drawn by the GvrApi.
+            if (!hasFirstFrame && videoPlayer != null) {
               surfaceView.queueEvent(
                 new Runnable() {
                   @Override
@@ -236,8 +241,9 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
           }
         });
 
-    // Resume the gvrLayout here. This will start the render thread and trigger
-    // a new async reprojection video Surface to become available.
+    // Resume the surfaceView and gvrLayout here. This will start the render thread and trigger a
+    // new async reprojection video Surface to become available.
+    surfaceView.onResume();
     gvrLayout.onResume();
     // Refresh the viewer profile in case the viewer params were changed.
     surfaceView.queueEvent(refreshViewerProfileRunnable);
@@ -267,11 +273,12 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
       videoPlayer.release();
       videoPlayer = null;
     }
-    // Pause the gvrLayout here. The video Surface is guaranteed to be detached and not
-    // available after gvrLayout.onPause(). We pause from onStop() to avoid needing to wait
+    // Pause the gvrLayout and surfaceView here. The video Surface is guaranteed to be detached and
+    // not available after gvrLayout.onPause(). We pause from onStop() to avoid needing to wait
     // for an available video Surface following brief onPause()/onResume() events. Wait for the
     // new onSurfaceAvailable() callback with a valid Surface before resuming the video player.
     gvrLayout.onPause();
+    surfaceView.onPause();
     super.onStop();
   }
 
