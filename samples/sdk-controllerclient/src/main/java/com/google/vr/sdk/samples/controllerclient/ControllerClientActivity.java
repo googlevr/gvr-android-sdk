@@ -149,20 +149,29 @@ public class ControllerClientActivity extends Activity {
       apiStatusView.setText(apiStatus);
       controllerStateView.setText(ConnectionStates.toString(controllerState));
       controller.update();
-      controllerOrientationText.setText(
-          " " + controller.orientation + "\n" + controller.orientation.toAxisAngleString());
+
+      float[] angles = new float[3];
+      controller.orientation.toYawPitchRollDegrees(angles);
+      controllerOrientationText.setText(String.format(
+          "%s\n%s\n[%4.0f\u00b0 y %4.0f\u00b0 p %4.0f\u00b0 r]",
+          controller.orientation,
+          controller.orientation.toAxisAngleString(),
+          angles[0], angles[1], angles[2]));
+
       if (controller.isTouching) {
         controllerTouchpadView.setText(
             String.format("[%4.2f, %4.2f]", controller.touch.x, controller.touch.y));
       } else {
         controllerTouchpadView.setText("[ NO TOUCH ]");
       }
+
       controllerButtonView.setText(String.format("[%s][%s][%s][%s][%s]",
           controller.appButtonState ? "A" : " ",
           controller.homeButtonState ? "H" : " ",
           controller.clickButtonState ? "T" : " ",
           controller.volumeUpButtonState ? "+" : " ",
           controller.volumeDownButtonState ? "-" : " "));
+
       controllerBatteryView.setText(String.format("[level: %s][charging: %s]",
           Controller.BatteryLevels.toString(controller.batteryLevelBucket),
           controller.isCharging));

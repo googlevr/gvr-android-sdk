@@ -205,6 +205,7 @@ DemoApp::~DemoApp() {
 void DemoApp::OnResume() {
   LOGD("DemoApp::OnResume");
   if (gvr_api_initialized_) {
+    gvr_api_->RefreshViewerProfile();
     gvr_api_->ResumeTracking();
   }
   if (controller_api_) controller_api_->Resume();

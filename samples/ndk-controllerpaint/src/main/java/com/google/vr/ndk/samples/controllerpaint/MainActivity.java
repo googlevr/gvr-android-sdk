@@ -30,34 +30,51 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 /**
- * Main Activity.
+ * A Google VR NDK sample application.
  *
- * <p>This is the main Activity for this demo app. It consists of a GLSurfaceView that is
- * responsible for doing the rendering. We forward all of the interesting events to native code.
+ * <p>This app is a "paint program" that allows the user to paint in virtual space using the
+ * controller. A cursor shows where the controller is pointing at. Touching or clicking the touchpad
+ * begins drawing. Then, as the user moves their hand, lines are drawn. The user can switch the
+ * drawing color by swiping to the right or left on the touchpad. The user can also change the
+ * drawing stroke width by moving their finger up and down on the touchpad.
+ *
+ * <p>This is the main Activity for the sample application. It initializes a GLSurfaceView to allow
+ * rendering, a GvrLayout for GVR API access, and forwards relevant events to the native demo app
+ * instance where rendering and interaction are handled.
  */
 public class MainActivity extends Activity {
   private static final String TAG = "MainActivity";
-  // Opaque native pointer to the DemoApp C++ object.
-  // This object is owned by the MainActivity instance and passed to the native methods.
-  private long nativeControllerPaint;
-
-  // This is done on the GL thread because refreshViewerProfile isn't thread-safe.
-  private final Runnable refreshViewerProfileRunnable =
-      new Runnable() {
-        @Override
-        public void run() {
-          gvrLayout.getGvrApi().refreshViewerProfile();
-        }
-      };
 
   static {
     // Load our JNI code.
     System.loadLibrary("controllerpaint_jni");
   }
 
+  // Opaque native pointer to the DemoApp C++ object.
+  // This object is owned by the MainActivity instance and passed to the native methods.
+  private long nativeControllerPaint;
+
   private GvrLayout gvrLayout;
   private GLSurfaceView surfaceView;
   private AssetManager assetManager;
+
+  // Note that pause and resume signals to the native app are performed on the GL thread, ensuring
+  // thread-safety.
+  private final Runnable pauseNativeRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          nativeOnPause(nativeControllerPaint);
+        }
+      };
+
+  private final Runnable resumeNativeRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          nativeOnResume(nativeControllerPaint);
+        }
+      };
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -131,9 +148,9 @@ public class MainActivity extends Activity {
 
   @Override
   protected void onPause() {
+    surfaceView.queueEvent(pauseNativeRunnable);
     surfaceView.onPause();
     gvrLayout.onPause();
-    nativeOnPause(nativeControllerPaint);
     super.onPause();
   }
 
@@ -142,8 +159,7 @@ public class MainActivity extends Activity {
     super.onResume();
     gvrLayout.onResume();
     surfaceView.onResume();
-    nativeOnResume(nativeControllerPaint);
-    surfaceView.queueEvent(refreshViewerProfileRunnable);
+    surfaceView.queueEvent(resumeNativeRunnable);
   }
 
   @Override
@@ -195,10 +211,10 @@ public class MainActivity extends Activity {
       };
 
   private native long nativeOnCreate(AssetManager assetManager, long gvrContextPtr);
+  private native void nativeOnDestroy(long controllerPaintJptr);
   private native void nativeOnResume(long controllerPaintJptr);
   private native void nativeOnPause(long controllerPaintJptr);
   private native void nativeOnSurfaceCreated(long controllerPaintJptr);
   private native void nativeOnSurfaceChanged(int width, int height, long controllerPaintJptr);
   private native void nativeOnDrawFrame(long controllerPaintJptr);
-  private native void nativeOnDestroy(long controllerPaintJptr);
 }

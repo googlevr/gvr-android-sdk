@@ -22,10 +22,10 @@ package com.google.vr.sdk.samples.videoplayer;
  * EGL_EXT_protected_content.
  */
 public class Configuration {
-
-  // Create a secure EGL context in to test rendering L1 HD DRM.
-  public static final boolean SECURE_EGL_CONTEXT = true;
-
   // Use video sample that requires secure playback.
-  public static final boolean REQUIRE_SECURE_PATH = true;
+  public static final boolean USE_DRM_VIDEO_SAMPLE = true;
+
+  // Create a protected asynchronous reprojection pipeline. This is required if a DRM video sample
+  // is played.
+  public static final boolean USE_PROTECTED_PIPELINE = USE_DRM_VIDEO_SAMPLE || true;
 }

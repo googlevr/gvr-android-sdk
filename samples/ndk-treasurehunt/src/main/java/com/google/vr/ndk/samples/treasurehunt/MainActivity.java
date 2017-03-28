@@ -23,32 +23,54 @@ import android.os.Vibrator;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import com.google.vr.ndk.base.AndroidCompat;
 import com.google.vr.ndk.base.GvrLayout;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-/** A Gvr API sample application. */
+/**
+ * A Google VR NDK sample application.
+ *
+ * <p>This app presents a scene consisting of a planar ground grid and a floating "treasure" cube.
+ * When the user finds the "treasure", they can invoke the trigger action, and the cube will be
+ * randomly repositioned. When in Cardboard mode, the user must gaze at the cube and use the
+ * Cardboard trigger button. When in Daydream mode, the user can use the controller to position the
+ * cursor, and use the controller buttons to invoke the trigger action.
+ *
+ * <p>This is the main Activity for the sample application. It initializes a GLSurfaceView to allow
+ * rendering, a GvrLayout for GVR API access, and forwards relevant events to the native renderer
+ * where rendering and interaction are handled.
+ */
 public class MainActivity extends Activity {
-  private GvrLayout gvrLayout;
-  private long nativeTreasureHuntRenderer;
-  private GLSurfaceView surfaceView;
-
-  // This is done on the GL thread because refreshViewerProfile isn't thread-safe.
-  private final Runnable refreshViewerProfileRunnable =
-      new Runnable() {
-        @Override
-        public void run() {
-          gvrLayout.getGvrApi().refreshViewerProfile();
-        }
-      };
-
   static {
     System.loadLibrary("gvr");
     System.loadLibrary("gvr_audio");
     System.loadLibrary("treasurehunt_jni");
   }
+
+  // Opaque native pointer to the native TreasureHuntRenderer instance.
+  private long nativeTreasureHuntRenderer;
+
+  private GvrLayout gvrLayout;
+  private GLSurfaceView surfaceView;
+
+  // Note that pause and resume signals to the native renderer are performed on the GL thread,
+  // ensuring thread-safety.
+  private final Runnable pauseNativeRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          nativeOnPause(nativeTreasureHuntRenderer);
+        }
+      };
+
+  private final Runnable resumeNativeRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          nativeOnResume(nativeTreasureHuntRenderer);
+        }
+      };
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -103,7 +125,13 @@ public class MainActivity extends Activity {
             if (event.getAction() == MotionEvent.ACTION_DOWN) {
               // Give user feedback and signal a trigger event.
               ((Vibrator) getSystemService(Context.VIBRATOR_SERVICE)).vibrate(50);
-              nativeOnTriggerEvent(nativeTreasureHuntRenderer);
+              surfaceView.queueEvent(
+                  new Runnable() {
+                    @Override
+                    public void run() {
+                      nativeOnTriggerEvent(nativeTreasureHuntRenderer);
+                    }
+                  });
               return true;
             }
             return false;
@@ -124,26 +152,22 @@ public class MainActivity extends Activity {
 
     // Enable VR Mode.
     AndroidCompat.setVrModeEnabled(this, true);
-
-    // Prevent screen from dimming/locking.
-    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
   }
 
   @Override
   protected void onPause() {
-    super.onPause();
-    nativeOnPause(nativeTreasureHuntRenderer);
-    gvrLayout.onPause();
+    surfaceView.queueEvent(pauseNativeRunnable);
     surfaceView.onPause();
+    gvrLayout.onPause();
+    super.onPause();
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-    nativeOnResume(nativeTreasureHuntRenderer);
     gvrLayout.onResume();
     surfaceView.onResume();
-    surfaceView.queueEvent(refreshViewerProfileRunnable);
+    surfaceView.queueEvent(resumeNativeRunnable);
   }
 
   @Override
@@ -154,6 +178,7 @@ public class MainActivity extends Activity {
     // native resources from the UI thread.
     gvrLayout.shutdown();
     nativeDestroyRenderer(nativeTreasureHuntRenderer);
+    nativeTreasureHuntRenderer = 0;
   }
 
   @Override
@@ -188,16 +213,10 @@ public class MainActivity extends Activity {
 
   private native long nativeCreateRenderer(
       ClassLoader appClassLoader, Context context, long nativeGvrContext);
-
   private native void nativeDestroyRenderer(long nativeTreasureHuntRenderer);
-
   private native void nativeInitializeGl(long nativeTreasureHuntRenderer);
-
   private native long nativeDrawFrame(long nativeTreasureHuntRenderer);
-
   private native void nativeOnTriggerEvent(long nativeTreasureHuntRenderer);
-
   private native void nativeOnPause(long nativeTreasureHuntRenderer);
-
   private native void nativeOnResume(long nativeTreasureHuntRenderer);
 }

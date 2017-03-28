@@ -56,6 +56,9 @@ typedef enum {
   // Asynchronous reprojection warps the app's rendered frame using the most
   // recent head pose just before pushing the frame to the display.
   GVR_FEATURE_ASYNC_REPROJECTION = 0,
+  // Support for framebuffers suitable for rendering with the GL_OVR_multiview2
+  // and GL_OVR_multiview_multisampled_render_to_texture extensions.
+  GVR_FEATURE_MULTIVIEW = 1,
 } gvr_feature;
 
 /// @}

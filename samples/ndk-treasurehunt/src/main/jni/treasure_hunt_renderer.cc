@@ -14,6 +14,7 @@
  */
 
 #include "treasure_hunt_renderer.h"  // NOLINT
+#include "treasure_hunt_shaders.h"  // NOLINT
 
 #include <android/log.h>
 #include <assert.h>
@@ -54,76 +55,6 @@ static const float kAngleLimit = 0.12f;
 static const float kPitchLimit = 0.12f;
 static const float kYawLimit = 0.12f;
 
-static const char* kGridFragmentShader = R"glsl(
-    precision mediump float;
-    varying vec4 v_Color;
-    varying vec3 v_Grid;
-
-    void main() {
-      float depth = gl_FragCoord.z / gl_FragCoord.w;
-      if ((mod(abs(v_Grid.x), 10.0) < 0.1) ||
-          (mod(abs(v_Grid.z), 10.0) < 0.1)) {
-        gl_FragColor = max(0.0, (90.0-depth) / 90.0) *
-                       vec4(1.0, 1.0, 1.0, 1.0) +
-                       min(1.0, depth / 90.0) * v_Color;
-      } else {
-        gl_FragColor = v_Color;
-      }
-    })glsl";
-
-static const char* kLightVertexShader = R"glsl(
-    uniform mat4 u_Model;
-    uniform mat4 u_MVP;
-    uniform mat4 u_MVMatrix;
-    uniform vec3 u_LightPos;
-    attribute vec4 a_Position;
-    attribute vec4 a_Color;
-    attribute vec3 a_Normal;
-    varying vec4 v_Color;
-    varying vec3 v_Grid;
-
-    void main() {
-      v_Grid = vec3(u_Model * a_Position);
-      vec3 modelViewVertex = vec3(u_MVMatrix * a_Position);
-      vec3 modelViewNormal = vec3(u_MVMatrix * vec4(a_Normal, 0.0));
-      float distance = length(u_LightPos - modelViewVertex);
-      vec3 lightVector = normalize(u_LightPos - modelViewVertex);
-      float diffuse = max(dot(modelViewNormal, lightVector), 0.5);
-      diffuse = diffuse * (1.0 / (1.0 + (0.00001 * distance * distance)));
-      v_Color = vec4(a_Color.rgb * diffuse, a_Color.a);
-      gl_Position = u_MVP * a_Position;
-    })glsl";
-
-static const char* kPassthroughFragmentShader = R"glsl(
-    precision mediump float;
-    varying vec4 v_Color;
-
-    void main() {
-      gl_FragColor = v_Color;
-    })glsl";
-
-static const char* kReticleVertexShader = R"glsl(
-    uniform mat4 u_MVP;
-    attribute vec4 a_Position;
-    varying vec2 v_Coords;
-
-    void main() {
-      v_Coords = a_Position.xy;
-      gl_Position = u_MVP * a_Position;
-    })glsl";
-
-static const char* kReticleFragmentShader = R"glsl(
-    precision mediump float;
-
-    varying vec2 v_Coords;
-
-    void main() {
-      float r = length(v_Coords);
-      float alpha = smoothstep(0.5, 0.6, r) * (1.0 - smoothstep(0.8, 0.9, r));
-      if (alpha == 0.0) discard;
-      gl_FragColor = vec4(alpha);
-    })glsl";
-
 // Sound file in APK assets.
 static const char* kObjectSoundFile = "cube_sound.wav";
 static const char* kSuccessSoundFile = "success.wav";
@@ -136,6 +67,31 @@ static std::array<float, 16> MatrixToGLArray(const gvr::Mat4f& matrix) {
     for (int j = 0; j < 4; ++j) {
       result[j * 4 + i] = matrix.m[i][j];
     }
+  }
+  return result;
+}
+
+// Flatten a pair of mat4's into an array of 32 floats, useful when feeding
+// uniform values to OpenGL for multiview.
+static std::array<float, 32> MatrixPairToGLArray(const gvr::Mat4f matrix[]) {
+  std::array<float, 32> result;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 4; ++j) {
+      result[j * 4 + i] = matrix[0].m[i][j];
+      result[16 + j * 4 + i] = matrix[1].m[i][j];
+    }
+  }
+  return result;
+}
+
+// Flatten a pair of vec3's into an array of 6 floats, useful when feeding
+// uniform values to OpenGL for multiview.
+static std::array<float, 6> VectorPairToGLArray(
+    const std::array<float, 3> vec[]) {
+  std::array<float, 6> result;
+  for (int k = 0; k < 3; ++k) {
+    result[k] = vec[0][k];
+    result[k + 3] = vec[1][k];
   }
   return result;
 }
@@ -164,6 +120,10 @@ static gvr::Mat4f MatrixMul(const gvr::Mat4f& matrix1,
     }
   }
   return result;
+}
+
+static std::array<float, 3> Vec4ToVec3(const std::array<float, 4>& vec) {
+  return {vec[0], vec[1], vec[2]};
 }
 
 static gvr::Mat4f PerspectiveMatrixFromView(const gvr::Rectf& fov, float z_near,
@@ -293,7 +253,8 @@ TreasureHuntRenderer::TreasureHuntRenderer(
     gvr_context* gvr_context, std::unique_ptr<gvr::AudioApi> gvr_audio_api)
     : gvr_api_(gvr::GvrApi::WrapNonOwned(gvr_context)),
       gvr_audio_api_(std::move(gvr_audio_api)),
-      scratch_viewport_(gvr_api_->CreateBufferViewport()),
+      viewport_left_(gvr_api_->CreateBufferViewport()),
+      viewport_right_(gvr_api_->CreateBufferViewport()),
       floor_vertices_(world_layout_data_.floor_coords.data()),
       cube_vertices_(world_layout_data_.cube_coords.data()),
       cube_colors_(world_layout_data_.cube_colors.data()),
@@ -326,16 +287,20 @@ TreasureHuntRenderer::~TreasureHuntRenderer() {
 
 void TreasureHuntRenderer::InitializeGl() {
   gvr_api_->InitializeGl();
+  multiview_enabled_ = gvr_api_->IsFeatureSupported(GVR_FEATURE_MULTIVIEW);
+  LOGD(multiview_enabled_ ? "Using multiview." : "Not using multiview.");
 
-  const int vertex_shader = LoadGLShader(GL_VERTEX_SHADER, &kLightVertexShader);
+  int index = multiview_enabled_ ? 1 : 0;
+  const int vertex_shader =
+      LoadGLShader(GL_VERTEX_SHADER, &kDiffuseLightingVertexShaders[index]);
   const int grid_shader =
-      LoadGLShader(GL_FRAGMENT_SHADER, &kGridFragmentShader);
+      LoadGLShader(GL_FRAGMENT_SHADER, &kGridFragmentShaders[index]);
   const int pass_through_shader =
-      LoadGLShader(GL_FRAGMENT_SHADER, &kPassthroughFragmentShader);
+      LoadGLShader(GL_FRAGMENT_SHADER, &kPassthroughFragmentShaders[index]);
   const int reticle_vertex_shader =
-      LoadGLShader(GL_VERTEX_SHADER, &kReticleVertexShader);
+      LoadGLShader(GL_VERTEX_SHADER, &kReticleVertexShaders[index]);
   const int reticle_fragment_shader =
-      LoadGLShader(GL_FRAGMENT_SHADER, &kReticleFragmentShader);
+      LoadGLShader(GL_FRAGMENT_SHADER, &kReticleFragmentShaders[index]);
 
   cube_program_ = glCreateProgram();
   glAttachShader(cube_program_, vertex_shader);
@@ -383,7 +348,7 @@ void TreasureHuntRenderer::InitializeGl() {
 
   CheckGLError("Reticle program");
 
-  reticle_position_param_ = glGetAttribLocation(floor_program_, "a_Position");
+  reticle_position_param_ = glGetAttribLocation(reticle_program_, "a_Position");
   reticle_modelview_projection_param_ =
       glGetUniformLocation(reticle_program_, "u_MVP");
 
@@ -413,8 +378,17 @@ void TreasureHuntRenderer::InitializeGl() {
   specs.push_back(gvr_api_->CreateBufferSpec());
   specs[0].SetColorFormat(GVR_COLOR_FORMAT_RGBA_8888);
   specs[0].SetDepthStencilFormat(GVR_DEPTH_STENCIL_FORMAT_DEPTH_16);
-  specs[0].SetSize(render_size_);
   specs[0].SetSamples(2);
+
+  // With multiview, the distortion buffer is a texture array with two layers
+  // whose width is half the display width.
+  if (multiview_enabled_) {
+    gvr::Sizei half_size = { render_size_.width / 2, render_size_.height };
+    specs[0].SetMultiviewLayers(2);
+    specs[0].SetSize(half_size);
+  } else {
+    specs[0].SetSize(render_size_);
+  }
 
   specs.push_back(gvr_api_->CreateBufferSpec());
   specs[1].SetSize(reticle_render_size_);
@@ -489,26 +463,56 @@ void TreasureHuntRenderer::DrawFrame() {
   // A client app does its rendering here.
   gvr::ClockTimePoint target_time = gvr::GvrApi::GetTimePointNow();
   target_time.monotonic_system_time_nanos += kPredictionTimeWithoutVsyncNanos;
-
+  gvr::BufferViewport* viewport[2] = {
+    &viewport_left_,
+    &viewport_right_,
+  };
   head_view_ = gvr_api_->GetHeadSpaceFromStartSpaceRotation(target_time);
-  gvr::Mat4f left_eye_matrix = gvr_api_->GetEyeFromHeadMatrix(GVR_LEFT_EYE);
-  gvr::Mat4f right_eye_matrix = gvr_api_->GetEyeFromHeadMatrix(GVR_RIGHT_EYE);
-  gvr::Mat4f left_eye_view = MatrixMul(left_eye_matrix, head_view_);
-  gvr::Mat4f right_eye_view = MatrixMul(right_eye_matrix, head_view_);
-
   viewport_list_->SetToRecommendedBufferViewports();
   gvr::BufferViewport reticle_viewport = gvr_api_->CreateBufferViewport();
   reticle_viewport.SetSourceBufferIndex(1);
   reticle_viewport.SetReprojection(GVR_REPROJECTION_NONE);
-  reticle_viewport.SetSourceUv({0.f, 1.f, 0.f, 1.f});
+  const gvr_rectf fullscreen = { 0, 1, 0, 1 };
+  reticle_viewport.SetSourceUv(fullscreen);
 
-  // Use the viewport transform to put the reticle in the correct place.
-  reticle_viewport.SetTransform(MatrixMul(left_eye_matrix, model_reticle_));
-  reticle_viewport.SetTargetEye(GVR_LEFT_EYE);
-  viewport_list_->SetBufferViewport(2, reticle_viewport);
-  reticle_viewport.SetTransform(MatrixMul(right_eye_matrix, model_reticle_));
-  reticle_viewport.SetTargetEye(GVR_RIGHT_EYE);
-  viewport_list_->SetBufferViewport(3, reticle_viewport);
+  gvr::Mat4f controller_matrix =
+      ControllerQuatToMatrix(gvr_controller_state_.GetOrientation());
+  model_cursor_ = MatrixMul(controller_matrix, model_reticle_);
+
+  gvr::Mat4f eye_views[2];
+  for (int eye = 0; eye < 2; ++eye) {
+    const gvr::Eye gvr_eye = eye == 0 ? GVR_LEFT_EYE : GVR_RIGHT_EYE;
+    const gvr::Mat4f eye_from_head = gvr_api_->GetEyeFromHeadMatrix(gvr_eye);
+    eye_views[eye] = MatrixMul(eye_from_head, head_view_);
+
+    viewport_list_->GetBufferViewport(eye, viewport[eye]);
+
+    if (multiview_enabled_) {
+      viewport[eye]->SetSourceUv(fullscreen);
+      viewport[eye]->SetSourceLayer(eye);
+      viewport_list_->SetBufferViewport(eye, *viewport[eye]);
+    }
+
+    reticle_viewport.SetTransform(MatrixMul(eye_from_head, model_reticle_));
+    reticle_viewport.SetTargetEye(gvr_eye);
+    // The first two viewports are for the 3D scene (one for each eye), the
+    // latter two viewports are for the reticle (one for each eye).
+    viewport_list_->SetBufferViewport(2 + eye, reticle_viewport);
+
+    modelview_cube_[eye] = MatrixMul(eye_views[eye], model_cube_);
+    modelview_floor_[eye] = MatrixMul(eye_views[eye], model_floor_);
+    const gvr_rectf fov = viewport[eye]->GetSourceFov();
+    const gvr::Mat4f perspective =
+        PerspectiveMatrixFromView(fov, kZNear, kZFar);
+    modelview_projection_cube_[eye] =
+        MatrixMul(perspective, modelview_cube_[eye]);
+    modelview_projection_floor_[eye] =
+        MatrixMul(perspective, modelview_floor_[eye]);
+    light_pos_eye_space_[eye] =
+        Vec4ToVec3(MatrixVectorMul(eye_views[eye], light_pos_world_space_));
+    modelview_projection_cursor_[eye] =
+        MatrixMul(perspective, MatrixMul(eye_views[eye], model_cursor_));
+  }
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
@@ -519,10 +523,12 @@ void TreasureHuntRenderer::DrawFrame() {
   frame.BindBuffer(0);
   glClearColor(0.1f, 0.1f, 0.1f, 0.5f);  // Dark background so text shows up.
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  viewport_list_->GetBufferViewport(0, &scratch_viewport_);
-  DrawWorld(left_eye_view, scratch_viewport_);
-  viewport_list_->GetBufferViewport(1, &scratch_viewport_);
-  DrawWorld(right_eye_view, scratch_viewport_);
+  if (multiview_enabled_) {
+    DrawWorld(kMultiview);
+  } else {
+    DrawWorld(kLeftView);
+    DrawWorld(kRightView);
+  }
   frame.Unbind();
 
   frame.BindBuffer(1);
@@ -532,9 +538,9 @@ void TreasureHuntRenderer::DrawFrame() {
   // In Cardboard viewer, draw head-locked reticle on a separate layer since the
   // cursor is controlled by head movement. In Daydream viewer, this layer is
   // left empty, since the cursor is controlled by controller and drawn with
-  // DrawCursor() in the same frame buffer as the virtual scene.
+  // DrawDaydreamCursor() in the same frame buffer as the virtual scene.
   if (gvr_viewer_type_ == GVR_VIEWER_TYPE_CARDBOARD) {
-    DrawReticle();
+    DrawCardboardReticle();
   }
   frame.Unbind();
 
@@ -577,6 +583,7 @@ void TreasureHuntRenderer::OnPause() {
 
 void TreasureHuntRenderer::OnResume() {
   gvr_api_->ResumeTracking();
+  gvr_api_->RefreshViewerProfile();
   gvr_audio_api_->Resume();
   gvr_viewer_type_ = gvr_api_->GetViewerType();
   ResumeControllerApiAsNeeded();
@@ -608,58 +615,51 @@ int TreasureHuntRenderer::LoadGLShader(int type, const char** shadercode) {
 }
 
 /**
- * Draws a frame for an eye.
+ * Draws a frame for a particular view.
  *
- * @param eye The eye to render. Includes all required transformations.
+ * @param view The view to render: left, right, or both (multiview).
  */
-void TreasureHuntRenderer::DrawWorld(const gvr::Mat4f& view_matrix,
-                                     const gvr::BufferViewport& viewport) {
-  const gvr::Recti pixel_rect =
-      CalculatePixelSpaceRect(render_size_, viewport.GetSourceUv());
-
-  glViewport(pixel_rect.left, pixel_rect.bottom,
-             pixel_rect.right - pixel_rect.left,
-             pixel_rect.top - pixel_rect.bottom);
-
-  CheckGLError("World drawing setup");
-
-  // Set the position of the light
-  light_pos_eye_space_ = MatrixVectorMul(view_matrix, light_pos_world_space_);
-  const gvr::Mat4f perspective =
-      PerspectiveMatrixFromView(viewport.GetSourceFov(), kZNear, kZFar);
-  modelview_ = MatrixMul(view_matrix, model_cube_);
-  modelview_projection_cube_ = MatrixMul(perspective, modelview_);
-  DrawCube();
-
-  // Set modelview_ for the floor, so we draw floor in the correct location
-  modelview_ = MatrixMul(view_matrix, model_floor_);
-  modelview_projection_floor_ = MatrixMul(perspective, modelview_);
-  DrawFloor();
-
+void TreasureHuntRenderer::DrawWorld(ViewType view) {
+  if (view == kMultiview) {
+    glViewport(0, 0, render_size_.width / 2, render_size_.height);
+  } else {
+    const gvr::BufferViewport& viewport =
+        view == kLeftView ? viewport_left_ : viewport_right_;
+    const gvr::Recti pixel_rect =
+        CalculatePixelSpaceRect(render_size_, viewport.GetSourceUv());
+    glViewport(pixel_rect.left, pixel_rect.bottom,
+               pixel_rect.right - pixel_rect.left,
+               pixel_rect.top - pixel_rect.bottom);
+  }
+  DrawCube(view);
+  DrawFloor(view);
   if (gvr_viewer_type_ == GVR_VIEWER_TYPE_DAYDREAM) {
-    gvr::Mat4f controller_matrix =
-        ControllerQuatToMatrix(gvr_controller_state_.GetOrientation());
-    model_cursor_ = MatrixMul(controller_matrix, model_reticle_);
-    modelview_ = MatrixMul(view_matrix, model_cursor_);
-    modelview_projection_cursor_ = MatrixMul(perspective, modelview_);
-    DrawCursor();
+    DrawDaydreamCursor(view);
   }
 }
 
-void TreasureHuntRenderer::DrawCube() {
+void TreasureHuntRenderer::DrawCube(ViewType view) {
   glUseProgram(cube_program_);
 
-  glUniform3fv(cube_light_pos_param_, 1, light_pos_eye_space_.data());
+  if (view == kMultiview) {
+    glUniform3fv(cube_light_pos_param_, 2,
+                 VectorPairToGLArray(light_pos_eye_space_).data());
+    glUniformMatrix4fv(cube_modelview_param_, 2, GL_FALSE,
+                       MatrixPairToGLArray(modelview_cube_).data());
+    glUniformMatrix4fv(cube_modelview_projection_param_, 2, GL_FALSE,
+                       MatrixPairToGLArray(modelview_projection_cube_).data());
+  } else {
+    glUniform3fv(cube_light_pos_param_, 1, light_pos_eye_space_[view].data());
+    glUniformMatrix4fv(cube_modelview_param_, 1, GL_FALSE,
+                       MatrixToGLArray(modelview_cube_[view]).data());
+    glUniformMatrix4fv(
+        cube_modelview_projection_param_, 1, GL_FALSE,
+        MatrixToGLArray(modelview_projection_cube_[view]).data());
+  }
 
   // Set the Model in the shader, used to calculate lighting
   glUniformMatrix4fv(cube_model_param_, 1, GL_FALSE,
                      MatrixToGLArray(model_cube_).data());
-  // Set the ModelView in the shader, used to calculate lighting
-  glUniformMatrix4fv(cube_modelview_param_, 1, GL_FALSE,
-                     MatrixToGLArray(modelview_).data());
-  // Set the ModelViewProjection matrix in the shader.
-  glUniformMatrix4fv(cube_modelview_projection_param_, 1, GL_FALSE,
-                     MatrixToGLArray(modelview_projection_cube_).data());
 
   // Set the position of the cube
   glVertexAttribPointer(cube_position_param_, kCoordsPerVertex, GL_FLOAT, false,
@@ -692,17 +692,27 @@ void TreasureHuntRenderer::DrawCube() {
   CheckGLError("Drawing cube");
 }
 
-void TreasureHuntRenderer::DrawFloor() {
+void TreasureHuntRenderer::DrawFloor(ViewType view) {
   glUseProgram(floor_program_);
 
-  // Set ModelView, MVP, position, normals, and color.
-  glUniform3fv(floor_light_pos_param_, 1, light_pos_eye_space_.data());
+  if (view == kMultiview) {
+    glUniform3fv(floor_light_pos_param_, 2,
+                 VectorPairToGLArray(light_pos_eye_space_).data());
+    glUniformMatrix4fv(floor_modelview_param_, 2, GL_FALSE,
+                       MatrixPairToGLArray(modelview_floor_).data());
+    glUniformMatrix4fv(floor_modelview_projection_param_, 2, GL_FALSE,
+                       MatrixPairToGLArray(modelview_projection_floor_).data());
+  } else {
+    glUniform3fv(floor_light_pos_param_, 1, light_pos_eye_space_[view].data());
+    glUniformMatrix4fv(floor_modelview_param_, 1, GL_FALSE,
+                       MatrixToGLArray(modelview_floor_[view]).data());
+    glUniformMatrix4fv(
+        floor_modelview_projection_param_, 1, GL_FALSE,
+        MatrixToGLArray(modelview_projection_floor_[view]).data());
+  }
+
   glUniformMatrix4fv(floor_model_param_, 1, GL_FALSE,
                      MatrixToGLArray(model_floor_).data());
-  glUniformMatrix4fv(floor_modelview_param_, 1, GL_FALSE,
-                     MatrixToGLArray(modelview_).data());
-  glUniformMatrix4fv(floor_modelview_projection_param_, 1, GL_FALSE,
-                     MatrixToGLArray(modelview_projection_floor_).data());
   glVertexAttribPointer(floor_position_param_, kCoordsPerVertex, GL_FLOAT,
                         false, 0, floor_vertices_);
   glVertexAttrib3f(floor_normal_param_, 0.0f, 1.0f, 0.0f);
@@ -715,10 +725,17 @@ void TreasureHuntRenderer::DrawFloor() {
   CheckGLError("Drawing floor");
 }
 
-void TreasureHuntRenderer::DrawCursor() {
+void TreasureHuntRenderer::DrawDaydreamCursor(ViewType view) {
   glUseProgram(reticle_program_);
-  glUniformMatrix4fv(reticle_modelview_projection_param_, 1, GL_FALSE,
-                     MatrixToGLArray(modelview_projection_cursor_).data());
+  if (view == kMultiview) {
+    glUniformMatrix4fv(
+        reticle_modelview_projection_param_, 2, GL_FALSE,
+        MatrixPairToGLArray(modelview_projection_cursor_).data());
+  } else {
+    glUniformMatrix4fv(
+        reticle_modelview_projection_param_, 1, GL_FALSE,
+        MatrixToGLArray(modelview_projection_cursor_[view]).data());
+  }
   glVertexAttribPointer(reticle_position_param_, kCoordsPerVertex, GL_FLOAT,
                         false, 0, reticle_vertices_);
   glEnableVertexAttribArray(reticle_position_param_);
@@ -727,7 +744,7 @@ void TreasureHuntRenderer::DrawCursor() {
   CheckGLError("Drawing cursor");
 }
 
-void TreasureHuntRenderer::DrawReticle() {
+void TreasureHuntRenderer::DrawCardboardReticle() {
   glViewport(0, 0, reticle_render_size_.width, reticle_render_size_.height);
   glUseProgram(reticle_program_);
   const gvr::Mat4f uniform_matrix = {{{1.f, 0.f, 0.f, 0.f},

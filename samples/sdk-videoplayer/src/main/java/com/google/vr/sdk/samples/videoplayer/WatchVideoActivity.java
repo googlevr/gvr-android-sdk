@@ -16,6 +16,7 @@
 package com.google.vr.sdk.samples.videoplayer;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
@@ -25,8 +26,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
-import com.google.android.exoplayer.drm.UnsupportedDrmException;
-import com.google.android.exoplayer.util.Util;
+import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 import com.google.vr.ndk.base.AndroidCompat;
 import com.google.vr.ndk.base.GvrLayout;
 import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
@@ -44,13 +44,13 @@ import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
  * VideoSceneRenderer} adds a {@link BufferViewport} per eye to describe where video should be
  * drawn.
  */
-public class WatchVideoActivity extends Activity implements VideoExoPlayer.Listener {
+public class WatchVideoActivity extends Activity {
   private static final String TAG = WatchVideoActivity.class.getSimpleName();
 
   private GvrLayout gvrLayout;
   private GLSurfaceView surfaceView;
   private VideoSceneRenderer renderer;
-  private VideoExoPlayer videoPlayer;
+  private VideoExoPlayer2 videoPlayer;
   private boolean hasFirstFrame;
 
   // Transform a quad that fills the clip box at Z=0 to a 16:9 screen at Z=-4. Note that the matrix
@@ -84,7 +84,6 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
     setImmersiveSticky();
     getWindow()
         .getDecorView()
@@ -149,7 +148,8 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
         gvrLayout.enableAsyncReprojectionVideoSurface(
             videoSurfaceListener,
             new Handler(Looper.getMainLooper()),
-            Configuration.SECURE_EGL_CONTEXT /* Whether video playback needs a secure context. */);
+            /* Whether video playback should use a protected reprojection pipeline. */
+            Configuration.USE_PROTECTED_PIPELINE);
     boolean isAsyncReprojectionEnabled = gvrLayout.setAsyncReprojectionEnabled(true);
 
     if (!isSurfaceEnabled || !isAsyncReprojectionEnabled) {
@@ -191,39 +191,24 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
   }
 
   private void initVideoPlayer() {
-    // L3 content - can be directed to a Surface.
-    final String streamUrlL3 =
-        "http://www.youtube.com/api/manifest/dash/id/d286538032258a1c/source/youtube?"
-            + "as=fmp4_audio_cenc,fmp4_sd_hd_cenc&sparams=ip,ipbits,expire,source,id,as&ip=0.0.0.0"
-            + "&ipbits=0&expire=19000000000&signature=477CF7D478BE26C205045D507E9358F85F84C065."
-            + "8971631EB657BC33EC2F48A2FF4211956760C3E9&key=ik0";
-    final String contentIdL3 = "d286538032258a1c";
+    videoPlayer = new VideoExoPlayer2(getApplication());
+    Uri streamUri;
+    String drmVideoId = null;
 
-    // L1 content - requires secure path.
-    final String streamUrlL1 =
-        "http://www.youtube.com/api/manifest/dash/id/0894c7c8719b28a0/source/youtube?"
-            + "as=fmp4_audio_cenc,fmp4_sd_hd_cenc&sparams=ip,ipbits,expire,source,id,as&ip=0.0.0.0"
-            + "&ipbits=0&expire=19000000000&signature=A41D835C7387885A4A820628F57E481E00095931."
-            + "9D50DBEEB5E37344647EE11BDA129A7FCDE8B7B9&key=ik0";
-    final String contentIdL1 = "0894c7c8719b28a0";
-
-    if (Configuration.REQUIRE_SECURE_PATH) {
-      videoPlayer =
-          new VideoExoPlayer(
-              this,
-              streamUrlL1,
-              new VideoExoPlayer.WidevineTestMediaDrmCallback(contentIdL1),
-              true);
+    if (Configuration.USE_DRM_VIDEO_SAMPLE) {
+      // Protected video, requires a secure path for playback.
+      streamUri = Uri.parse("https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd");
+      drmVideoId = "0894c7c8719b28a0";
     } else {
-      videoPlayer =
-          new VideoExoPlayer(
-              this,
-              streamUrlL3,
-              new VideoExoPlayer.WidevineTestMediaDrmCallback(contentIdL3),
-              false);
+      // Unprotected video, does not require a secure path for playback.
+      streamUri = Uri.parse("https://storage.googleapis.com/wvmedia/clear/h264/tears/tears.mpd");
     }
-    videoPlayer.addListener(this);
-    videoPlayer.init();
+
+    try {
+      videoPlayer.initPlayer(streamUri, drmVideoId);
+    } catch (UnsupportedDrmException e) {
+      Log.e(TAG, "Error initializing video player", e);
+    }
   }
 
   @Override
@@ -268,9 +253,8 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
 
   @Override
   protected void onStop() {
-    videoPlayer.stop();
     if (videoPlayer != null) {
-      videoPlayer.release();
+      videoPlayer.releasePlayer();
       videoPlayer = null;
     }
     // Pause the gvrLayout and surfaceView here. The video Surface is guaranteed to be detached and
@@ -285,28 +269,7 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
   @Override
   protected void onDestroy() {
     gvrLayout.shutdown();
-    if (videoPlayer != null) {
-      videoPlayer.release();
-      videoPlayer = null;
-    }
     super.onDestroy();
-  }
-
-  @Override
-  public void onError(Exception e) {
-    if (e instanceof UnsupportedDrmException) {
-      // Special case DRM failures.
-      UnsupportedDrmException unsupportedDrmException = (UnsupportedDrmException) e;
-      int stringId =
-          Util.SDK_INT < 18
-              ? R.string.drm_error_not_supported
-              : unsupportedDrmException.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
-                  ? R.string.drm_error_unsupported_scheme
-                  : R.string.drm_error_unknown;
-      Log.e(TAG, "UnsupportedDrmException " + getResources().getString(stringId));
-    } else {
-      Log.e(TAG, "UnsupportedDrmException " + getResources().getString(R.string.playback_error));
-    }
   }
 
   @Override
@@ -337,5 +300,14 @@ public class WatchVideoActivity extends Activity implements VideoExoPlayer.Liste
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+  }
+
+  protected VideoExoPlayer2 getVideoExoPlayer() {
+    return videoPlayer;
+  }
+
+  /** @return {@code true} if the first video frame has played **/
+  protected boolean hasFirstFrame() {
+    return hasFirstFrame;
   }
 }

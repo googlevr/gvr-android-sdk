@@ -173,7 +173,7 @@ public class SimpleVrVideoActivity extends Activity {
     // Save the intent. This allows the getIntent() call in onCreate() to use this new Intent during
     // future invocations.
     setIntent(intent);
-    // Load the new image.
+    // Load the new video.
     handleIntent(intent);
   }
 

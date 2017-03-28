@@ -90,28 +90,34 @@ class TreasureHuntRenderer {
    */
   int LoadGLShader(int type, const char** shadercode);
 
+  enum ViewType {
+    kLeftView,
+    kRightView,
+    kMultiview
+  };
+
   /**
-   * Draws all world-space objects for one eye.
+   * Draws all world-space objects for the given view type.
    *
-   * @param view_matrix View transformation for the current eye.
-   * @param viewport The buffer viewport for which we are rendering.
+   * @param view Specifies which view we are rendering.
    */
-  void DrawWorld(const gvr::Mat4f& view_matrix,
-                 const gvr::BufferViewport& viewport);
+  void DrawWorld(ViewType view);
 
   /**
    * Draws the reticle. The reticle is positioned using viewport parameters,
    * so no data about its eye-space position is needed here.
    */
-  void DrawReticle();
+  void DrawCardboardReticle();
 
   /**
    * Draw the cube.
    *
    * We've set all of our transformation matrices. Now we simply pass them
    * into the shader.
+   *
+   * @param view Specifies which eye we are rendering: left, right, or both.
    */
-  void DrawCube();
+  void DrawCube(ViewType view);
 
   /**
    * Draw the floor.
@@ -119,16 +125,20 @@ class TreasureHuntRenderer {
    * This feeds in data for the floor into the shader. Note that this doesn't
    * feed in data about position of the light, so if we rewrite our code to
    * draw the floor first, the lighting might look strange.
+   *
+   * @param view Specifies which eye we are rendering: left, right, or both.
    */
-  void DrawFloor();
+  void DrawFloor(ViewType view);
 
   /**
    * Draws the cursor.
    *
    * We've set all of our transformation matrices. Now we simply pass them
    * into the shader.
+   *
+   * @param view Specifies which eye we are rendering: left, right, or both.
    */
-  void DrawCursor();
+  void DrawDaydreamCursor(ViewType view);
 
   /**
    * Find a new random position for the object.
@@ -193,7 +203,8 @@ class TreasureHuntRenderer {
   std::unique_ptr<gvr::AudioApi> gvr_audio_api_;
   std::unique_ptr<gvr::BufferViewportList> viewport_list_;
   std::unique_ptr<gvr::SwapChain> swapchain_;
-  gvr::BufferViewport scratch_viewport_;
+  gvr::BufferViewport viewport_left_;
+  gvr::BufferViewport viewport_right_;
 
   std::vector<float> lightpos_;
 
@@ -232,24 +243,31 @@ class TreasureHuntRenderer {
   const gvr::Sizei reticle_render_size_;
 
   const std::array<float, 4> light_pos_world_space_;
-  std::array<float, 4> light_pos_eye_space_;
 
   gvr::Mat4f head_view_;
   gvr::Mat4f model_cube_;
   gvr::Mat4f camera_;
   gvr::Mat4f view_;
-  gvr::Mat4f modelview_projection_cube_;
-  gvr::Mat4f modelview_projection_floor_;
-  gvr::Mat4f modelview_projection_cursor_;
-  gvr::Mat4f modelview_;
   gvr::Mat4f model_floor_;
   gvr::Mat4f model_reticle_;
   gvr::Mat4f model_cursor_;
   gvr::Sizei render_size_;
 
+  // View-dependent values.  These are stored in length two arrays to allow
+  // syncing with uniforms consumed by the multiview vertex shader.  For
+  // simplicity, we stash valid values in both elements (left, right) of these
+  // arrays even when multiview is disabled.
+  std::array<float, 3> light_pos_eye_space_[2];
+  gvr::Mat4f modelview_projection_cube_[2];
+  gvr::Mat4f modelview_projection_floor_[2];
+  gvr::Mat4f modelview_projection_cursor_[2];
+  gvr::Mat4f modelview_cube_[2];
+  gvr::Mat4f modelview_floor_[2];
+
   int score_;
   float object_distance_;
   float reticle_distance_;
+  bool multiview_enabled_;
 
   gvr::AudioSourceId audio_source_id_;
 

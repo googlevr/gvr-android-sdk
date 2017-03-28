@@ -111,7 +111,7 @@ typedef enum {
 /// Opaque handle to gesture context.
 typedef struct gvr_gesture_context_ gvr_gesture_context;
 
-/// Opaque handle to gesture detector.
+/// Opaque handle to gesture.
 typedef struct gvr_gesture_ gvr_gesture;
 
 /// Creates and initializes a gesture context instance which can be used to
