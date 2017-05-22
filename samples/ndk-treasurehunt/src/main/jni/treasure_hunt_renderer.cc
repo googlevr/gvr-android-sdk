@@ -59,8 +59,9 @@ static const float kYawLimit = 0.12f;
 static const char* kObjectSoundFile = "cube_sound.wav";
 static const char* kSuccessSoundFile = "success.wav";
 
+// Convert a GVR matrix to an array of floats suitable for passing to OpenGL.
 static std::array<float, 16> MatrixToGLArray(const gvr::Mat4f& matrix) {
-  // Note that this performs a *tranpose* to a column-major matrix array, as
+  // Note that this performs a *transpose* to a column-major matrix array, as
   // expected by GL.
   std::array<float, 16> result;
   for (int i = 0; i < 4; ++i) {
@@ -96,6 +97,7 @@ static std::array<float, 6> VectorPairToGLArray(
   return result;
 }
 
+// Multiply a vector by a matrix.
 static std::array<float, 4> MatrixVectorMul(const gvr::Mat4f& matrix,
                                             const std::array<float, 4>& vec) {
   std::array<float, 4> result;
@@ -108,6 +110,7 @@ static std::array<float, 4> MatrixVectorMul(const gvr::Mat4f& matrix,
   return result;
 }
 
+// Multiply two matrices.
 static gvr::Mat4f MatrixMul(const gvr::Mat4f& matrix1,
                             const gvr::Mat4f& matrix2) {
   gvr::Mat4f result;
@@ -122,10 +125,13 @@ static gvr::Mat4f MatrixMul(const gvr::Mat4f& matrix1,
   return result;
 }
 
+// Drop the last element of a vector.
 static std::array<float, 3> Vec4ToVec3(const std::array<float, 4>& vec) {
   return {vec[0], vec[1], vec[2]};
 }
 
+// Given a field of view in degrees, compute the corresponding projection
+// matrix.
 static gvr::Mat4f PerspectiveMatrixFromView(const gvr::Rectf& fov, float z_near,
                                             float z_far) {
   gvr::Mat4f result;
@@ -160,6 +166,8 @@ static gvr::Mat4f PerspectiveMatrixFromView(const gvr::Rectf& fov, float z_near,
   return result;
 }
 
+// Multiplies both X coordinates of the rectangle by the given width and both Y
+// coordinates by the given height.
 static gvr::Rectf ModulateRect(const gvr::Rectf& rect, float width,
                                float height) {
   gvr::Rectf result = {rect.left * width, rect.right * width,
@@ -167,6 +175,8 @@ static gvr::Rectf ModulateRect(const gvr::Rectf& rect, float width,
   return result;
 }
 
+// Given the size of a texture in pixels and a rectangle in UV coordinates,
+// computes the corresponding rectangle in pixel coordinates.
 static gvr::Recti CalculatePixelSpaceRect(const gvr::Sizei& texture_size,
                                           const gvr::Rectf& texture_rect) {
   const float width = static_cast<float>(texture_size.width);
@@ -195,6 +205,8 @@ static void CheckGLError(const char* label) {
   }
 }
 
+// Computes a texture size that has approximately half as many pixels. This is
+// equivalent to scaling each dimension by approximately sqrt(2)/2.
 static gvr::Sizei HalfPixelCount(const gvr::Sizei& in) {
   // Scale each dimension by sqrt(2)/2 ~= 7/10ths.
   gvr::Sizei out;
@@ -203,6 +215,8 @@ static gvr::Sizei HalfPixelCount(const gvr::Sizei& in) {
   return out;
 }
 
+// Convert the quaternion describing the controller's orientation to a
+// rotation matrix.
 static gvr::Mat4f ControllerQuatToMatrix(const gvr::ControllerQuat& quat) {
   gvr::Mat4f result;
   const float x = quat.qx;
@@ -561,8 +575,13 @@ void TreasureHuntRenderer::PrepareFramebuffer() {
       HalfPixelCount(gvr_api_->GetMaximumEffectiveRenderTargetSize());
   if (render_size_.width != recommended_size.width ||
       render_size_.height != recommended_size.height) {
-    // We need to resize the framebuffer.
-    swapchain_->ResizeBuffer(0, recommended_size);
+    // We need to resize the framebuffer. Note that multiview uses two texture
+    // layers, each with half the render width.
+    gvr::Sizei framebuffer_size = recommended_size;
+    if (multiview_enabled_) {
+      framebuffer_size.width /= 2;
+    }
+    swapchain_->ResizeBuffer(0, framebuffer_size);
     render_size_ = recommended_size;
   }
 }

@@ -99,15 +99,15 @@ public class MainActivity extends Activity {
     // Get the GvrLayout.
     gvrLayout = new GvrLayout(this);
 
-    // Enable scan line racing, if possible.
+    // Enable async reprojection, if possible.
     if (gvrLayout.setAsyncReprojectionEnabled(true)) {
-      Log.d(TAG, "Successfully enabled scanline racing.");
-      // Scanline racing decouples the app framerate from the display framerate,
+      Log.d(TAG, "Successfully enabled async reprojection.");
+      // Async reprojection decouples the app framerate from the display framerate,
       // allowing immersive interaction even at the throttled clockrates set by
       // sustained performance mode.
       AndroidCompat.setSustainedPerformanceMode(this, true);
     } else {
-      Log.w(TAG, "Failed to enable scanline racing.");
+      Log.w(TAG, "Failed to enable async reprojection.");
     }
 
     // Configure the GLSurfaceView.
@@ -160,6 +160,12 @@ public class MainActivity extends Activity {
     gvrLayout.onResume();
     surfaceView.onResume();
     surfaceView.queueEvent(resumeNativeRunnable);
+  }
+
+  @Override
+  public void onBackPressed() {
+    super.onBackPressed();
+    gvrLayout.onBackPressed();
   }
 
   @Override

@@ -59,6 +59,10 @@ typedef enum {
   // Support for framebuffers suitable for rendering with the GL_OVR_multiview2
   // and GL_OVR_multiview_multisampled_render_to_texture extensions.
   GVR_FEATURE_MULTIVIEW = 1,
+  // Support for external surface creation and compositing. Note that this
+  // feature may be supported only under certain configurations, e.g., when
+  // async reprojection is explicitly enabled.
+  GVR_FEATURE_EXTERNAL_SURFACE = 2
 } gvr_feature;
 
 /// @}
@@ -107,7 +111,8 @@ typedef struct gvr_vec3f {
   float z;
 } gvr_vec3f;
 
-/// A floating point 4x4 matrix.
+/// A floating point 4x4 matrix stored in row-major form. It needs to be
+/// transposed before being used with OpenGL.
 typedef struct gvr_mat4f { float m[4][4]; } gvr_mat4f;
 
 /// A floating point quaternion, in JPL format.
@@ -115,11 +120,11 @@ typedef struct gvr_mat4f { float m[4][4]; } gvr_mat4f;
 /// particular math library. The user of this API is free to encapsulate this
 /// into any math library they want.
 typedef struct gvr_quatf {
-  /// qx, qy, qz are the vector component.
+  /// qx, qy, qz are the vector components.
   float qx;
   float qy;
   float qz;
-  /// qw is the linelar component.
+  /// qw is the scalar component.
   float qw;
 } gvr_quatf;
 
@@ -355,8 +360,11 @@ typedef enum {
   // Enables to initialize a yet undefined rendering mode.
   GVR_AUDIO_SURROUND_FORMAT_INVALID = 0,
 
+  // Virtual mono speaker at 0 degrees (front).
+  GVR_AUDIO_SURROUND_FORMAT_SURROUND_MONO = 1,
+
   // Virtual stereo speakers at -30 degrees and +30 degrees.
-  GVR_AUDIO_SURROUND_FORMAT_SURROUND_STEREO = 1,
+  GVR_AUDIO_SURROUND_FORMAT_SURROUND_STEREO = 2,
 
   // 5.1 surround sound according to the ITU-R BS 775 speaker configuration
   // recommendation:
@@ -370,19 +378,19 @@ typedef enum {
   // The 5.1 channel input layout must matches AAC: FL, FR, FC, LFE, LS, RS.
   // Note that this differs from the Vorbis/Opus 5.1 channel layout, which
   // is: FL, FC, FR, LS, RS, LFE.
-  GVR_AUDIO_SURROUND_FORMAT_SURROUND_FIVE_DOT_ONE = 2,
+  GVR_AUDIO_SURROUND_FORMAT_SURROUND_FIVE_DOT_ONE = 3,
 
   // First-order ambisonics (AmbiX format: 4 channels, ACN channel ordering,
   // SN3D normalization).
-  GVR_AUDIO_SURROUND_FORMAT_FIRST_ORDER_AMBISONICS = 3,
+  GVR_AUDIO_SURROUND_FORMAT_FIRST_ORDER_AMBISONICS = 4,
 
   // Second-order ambisonics (AmbiX format: 9 channels, ACN channel ordering,
   // SN3D normalization).
-  GVR_AUDIO_SURROUND_FORMAT_SECOND_ORDER_AMBISONICS = 4,
+  GVR_AUDIO_SURROUND_FORMAT_SECOND_ORDER_AMBISONICS = 5,
 
   // Third-order ambisonics (AmbiX format: 16 channels, ACN channel ordering,
   // SN3D normalization).
-  GVR_AUDIO_SURROUND_FORMAT_THIRD_ORDER_AMBISONICS = 5,
+  GVR_AUDIO_SURROUND_FORMAT_THIRD_ORDER_AMBISONICS = 6,
 } gvr_audio_surround_format_type;
 
 /// Valid color formats for swap chain buffers.
@@ -611,7 +619,7 @@ class UserPrefs;
 
 }  // namespace gvr
 
-// Non-member equality operators for convenience. Since typedefs do not trigger
+// Non-member operators for convenience. Since typedefs do not trigger
 // argument-dependent lookup, these operators have to be defined for the
 // underlying types.
 inline bool operator==(const gvr_vec2f& lhs, const gvr_vec2f& rhs) {
@@ -654,6 +662,30 @@ inline bool operator==(const gvr_sizei& lhs, const gvr_sizei& rhs) {
 
 inline bool operator!=(const gvr_sizei& lhs, const gvr_sizei& rhs) {
   return !(lhs == rhs);
+}
+
+inline bool operator==(gvr_clock_time_point lhs, gvr_clock_time_point rhs) {
+  return lhs.monotonic_system_time_nanos == rhs.monotonic_system_time_nanos;
+}
+
+inline bool operator!=(gvr_clock_time_point lhs, gvr_clock_time_point rhs) {
+  return lhs.monotonic_system_time_nanos != rhs.monotonic_system_time_nanos;
+}
+
+inline bool operator<(gvr_clock_time_point lhs, gvr_clock_time_point rhs) {
+  return lhs.monotonic_system_time_nanos < rhs.monotonic_system_time_nanos;
+}
+
+inline bool operator<=(gvr_clock_time_point lhs, gvr_clock_time_point rhs) {
+  return lhs.monotonic_system_time_nanos <= rhs.monotonic_system_time_nanos;
+}
+
+inline bool operator>(gvr_clock_time_point lhs, gvr_clock_time_point rhs) {
+  return lhs.monotonic_system_time_nanos > rhs.monotonic_system_time_nanos;
+}
+
+inline bool operator>=(gvr_clock_time_point lhs, gvr_clock_time_point rhs) {
+  return lhs.monotonic_system_time_nanos >= rhs.monotonic_system_time_nanos;
 }
 
 #endif  // #if defined(__cplusplus) && !defined(GVR_NO_CPP_WRAPPER)

@@ -896,7 +896,7 @@ int32_t gvr_get_viewer_type(const gvr_context* gvr);
 /// the given eye.
 ///
 /// @param gvr Pointer to the gvr instance from which to get the matrix.
-/// @param eye Selected gvr_eye type.
+/// @param eye Selected eye type.
 /// @return Transformation matrix from Head Space to selected Eye Space.
 gvr_mat4f gvr_get_eye_from_head_matrix(const gvr_context* gvr,
                                        const int32_t eye);
@@ -938,6 +938,8 @@ void gvr_compute_distorted_point(const gvr_context* gvr, const int32_t eye,
 #if defined(__cplusplus) && !defined(GVR_NO_CPP_WRAPPER)
 namespace gvr {
 
+class GvrApi;
+
 /// Convenience C++ wrapper for gvr_user_prefs.
 class UserPrefs {
  public:
@@ -965,12 +967,12 @@ class UserPrefs {
   /// Returns the wrapped C object. Does not affect ownership.
   const gvr_user_prefs* cobj() const { return user_prefs_; }
 
+  // Disallow copy and assign.
+  UserPrefs(const UserPrefs&) = delete;
+  void operator=(const UserPrefs&) = delete;
+
  private:
   const gvr_user_prefs* user_prefs_;
-
-  // Disallow copy and assign.
-  UserPrefs(const UserPrefs&);
-  void operator=(const UserPrefs&);
 };
 
 /// Convenience C++ wrapper for the opaque gvr_buffer_viewport type.
@@ -1158,7 +1160,12 @@ class BufferViewportList {
   }
 
   /// For more information, see gvr_buffer_viewport_list_get_item().
+  /// N.B. If *viewport is an empty BufferViewport object, this
+  /// function will initialize it.
   void GetBufferViewport(size_t index, BufferViewport* viewport) const {
+    if (!*viewport) {
+      *viewport = BufferViewport(context_);
+    }
     gvr_buffer_viewport_list_get_item(viewport_list_, index,
                                       viewport->viewport_);
   }
@@ -1189,6 +1196,10 @@ class BufferViewportList {
   }
   /// @}
 
+  // Disallow copy and assign.
+  BufferViewportList(const BufferViewportList&) = delete;
+  void operator=(const BufferViewportList&) = delete;
+
  private:
   friend class Frame;
   friend class GvrApi;
@@ -1198,12 +1209,8 @@ class BufferViewportList {
       : context_(context),
         viewport_list_(gvr_buffer_viewport_list_create(context)) {}
 
-  const gvr_context* context_;
+  gvr_context* context_;
   gvr_buffer_viewport_list* viewport_list_;
-
-  // Disallow copy and assign.
-  BufferViewportList(const BufferViewportList&) = delete;
-  void operator=(const BufferViewportList&) = delete;
 };
 
 /// Convenience C++ wrapper for gvr_buffer_spec, an opaque pixel buffer
@@ -1448,6 +1455,10 @@ class SwapChain {
   }
   /// @}
 
+  // Disallow copy and assign.
+  SwapChain(const SwapChain&) = delete;
+  void operator=(const SwapChain&) = delete;
+
  private:
   friend class GvrApi;
 
@@ -1460,10 +1471,6 @@ class SwapChain {
   }
 
   gvr_swap_chain* swap_chain_;
-
-  // Disallow copy and assign.
-  SwapChain(const SwapChain&);
-  void operator=(const SwapChain&);
 };
 
 /// This is a convenience C++ wrapper for the Google VR C API.
@@ -1789,16 +1796,16 @@ class GvrApi {
   }
   /// @}
 
+  // Disallow copy and assign.
+  GvrApi(const GvrApi&) = delete;
+  void operator=(const GvrApi&) = delete;
+
  private:
   gvr_context* context_;
 
   // Whether context_ is owned by the GvrApi instance. If owned, the context
   // will be released upon destruction.
   const bool owned_;
-
-  // Disallow copy and assign.
-  GvrApi(const GvrApi&);
-  void operator=(const GvrApi&);
 };
 
 }  // namespace gvr

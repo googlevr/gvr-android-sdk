@@ -6,15 +6,17 @@ import android.net.Uri;
 import android.util.Log;
 import android.view.Surface;
 import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.DefaultLoadControl;
+import com.google.android.exoplayer2.DefaultRenderersFactory;
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.audio.AudioProcessor;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
+import com.google.android.exoplayer2.ext.gvr.GvrAudioProcessor;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -23,7 +25,7 @@ import com.google.android.exoplayer2.source.dash.DefaultDashChunkSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
 import com.google.android.exoplayer2.source.smoothstreaming.DefaultSsChunkSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveVideoTrackSelection;
+import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
 import com.google.android.exoplayer2.upstream.DataSource;
@@ -48,6 +50,7 @@ public class VideoExoPlayer2 {
   private final Context context;
   private final String userAgent;
   private final DataSource.Factory mediaDataSourceFactory;
+  private GvrAudioProcessor gvrAudioProcessor;
   private SimpleExoPlayer player;
 
   public VideoExoPlayer2(Context context) {
@@ -83,7 +86,15 @@ public class VideoExoPlayer2 {
   public SimpleExoPlayer getPlayer() {
     return player;
   }
-  
+
+  /**
+   * Returns the {@link GvrAudioProcessor} the player is using to render spatial audio, or
+   * {@code null} if not set. The audio processor is part of the ExoPlayer GVR extension.
+   */
+  public GvrAudioProcessor getGvrAudioProcessor() {
+    return gvrAudioProcessor;
+  }
+
   /**
    * Sets the Surface for the video player to decode frames into. When the Surface is set, the video
    * player will begin to autoplay.
@@ -99,7 +110,7 @@ public class VideoExoPlayer2 {
   }
 
   /**
-   * Inialializes the video player. The player can playback a video at the specified Uri. DRM videos
+   * Initializes the video player. The player can playback a video at the specified Uri. DRM videos
    * hosted by the Widevine test license can be played
    *
    * <p>Note: this should be called in the host activity's onStart() method.
@@ -127,15 +138,13 @@ public class VideoExoPlayer2 {
     }
 
     TrackSelection.Factory videoTrackSelectionFactory =
-        new AdaptiveVideoTrackSelection.Factory(BANDWIDTH_METER);
+        new AdaptiveTrackSelection.Factory(BANDWIDTH_METER);
     DefaultTrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
-    player =
-        ExoPlayerFactory.newSimpleInstance(
-            context,
-            trackSelector,
-            new DefaultLoadControl(),
-            drmSessionManager,
-            SimpleExoPlayer.EXTENSION_RENDERER_MODE_OFF);
+
+    gvrAudioProcessor = new GvrAudioProcessor();
+    player = ExoPlayerFactory.newSimpleInstance(
+        new GvrRenderersFactory(context, drmSessionManager, gvrAudioProcessor),
+        trackSelector);
 
     // Auto play the video.
     player.setPlayWhenReady(true);
@@ -155,6 +164,7 @@ public class VideoExoPlayer2 {
     if (player != null) {
       player.release();
       player = null;
+      gvrAudioProcessor = null;
     }
   }
 
@@ -234,4 +244,23 @@ public class VideoExoPlayer2 {
   public HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
     return new DefaultHttpDataSourceFactory(userAgent, bandwidthMeter);
   }
+
+  private static final class GvrRenderersFactory extends DefaultRenderersFactory {
+
+    private final GvrAudioProcessor gvrAudioProcessor;
+
+    private GvrRenderersFactory(Context context,
+        DrmSessionManager<FrameworkMediaCrypto> drmSessionManager,
+        GvrAudioProcessor gvrAudioProcessor) {
+      super(context, drmSessionManager);
+      this.gvrAudioProcessor = gvrAudioProcessor;
+    }
+
+    @Override
+    public AudioProcessor[] buildAudioProcessors() {
+      return new AudioProcessor[] {gvrAudioProcessor};
+    }
+
+  }
+
 }

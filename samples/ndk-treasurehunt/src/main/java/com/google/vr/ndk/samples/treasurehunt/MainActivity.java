@@ -142,9 +142,9 @@ public class MainActivity extends Activity {
     // Add the GvrLayout to the View hierarchy.
     setContentView(gvrLayout);
 
-    // Enable scan line racing.
+    // Enable async reprojection.
     if (gvrLayout.setAsyncReprojectionEnabled(true)) {
-      // Scanline racing decouples the app framerate from the display framerate,
+      // Async reprojection decouples the app framerate from the display framerate,
       // allowing immersive interaction even at the throttled clockrates set by
       // sustained performance mode.
       AndroidCompat.setSustainedPerformanceMode(this, true);
@@ -179,6 +179,12 @@ public class MainActivity extends Activity {
     gvrLayout.shutdown();
     nativeDestroyRenderer(nativeTreasureHuntRenderer);
     nativeTreasureHuntRenderer = 0;
+  }
+
+  @Override
+  public void onBackPressed() {
+    super.onBackPressed();
+    gvrLayout.onBackPressed();
   }
 
   @Override

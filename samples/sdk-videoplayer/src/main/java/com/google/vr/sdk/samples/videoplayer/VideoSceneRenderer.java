@@ -21,6 +21,7 @@ import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.Matrix;
+import com.google.android.exoplayer2.ext.gvr.GvrAudioProcessor;
 import com.google.vr.ndk.base.BufferSpec;
 import com.google.vr.ndk.base.BufferViewport;
 import com.google.vr.ndk.base.BufferViewportList;
@@ -46,14 +47,15 @@ public class VideoSceneRenderer implements Renderer {
   private static final float NEAR_PLANE = 1.0f;
   private static final float FAR_PLANE = 10.0f;
 
-  private final GvrApi api;
   private final Context context;
+  private final GvrApi api;
   private final BufferViewportList recommendedList;
   private final BufferViewportList viewportList;
   private final BufferViewport scratchViewport;
 
   private final long predictionOffsetNanos;
 
+  private GvrAudioProcessor gvrAudioProcessor;
   private SwapChain swapChain;
   private VideoScene videoScene;
   private volatile int videoSurfaceID = BufferViewport.EXTERNAL_SURFACE_ID_NONE;
@@ -87,6 +89,16 @@ public class VideoSceneRenderer implements Renderer {
     if (swapChain != null) {
       swapChain.shutdown();
     }
+  }
+
+  /**
+   * Sets the {@link GvrAudioProcessor} that is rendering spatial audio. If non-{@code null}, its
+   * orientation will be updated when each frame is rendered.
+   *
+   * @param gvrAudioProcessor The {@link GvrAudioProcessor}. May be {@code null}.
+   */
+  public void setGvrAudioProcessor(GvrAudioProcessor gvrAudioProcessor) {
+    this.gvrAudioProcessor = gvrAudioProcessor;
   }
 
   /**
@@ -164,13 +176,7 @@ public class VideoSceneRenderer implements Renderer {
   @Override
   public void onDrawFrame(GL10 gl) {
     Frame frame = swapChain.acquireFrame();
-
-    api.getHeadSpaceFromStartSpaceRotation(
-        headFromWorld, System.nanoTime() + predictionOffsetNanos);
-    for (int eye = 0; eye < 2; ++eye) {
-      api.getEyeFromHeadMatrix(eye, eyeFromHead);
-      Matrix.multiplyMM(eyeFromWorld[eye], 0, eyeFromHead, 0, headFromWorld, 0);
-    }
+    updateHeadAndEyeMatrices();
     // Populate the BufferViewportList to describe to the GvrApi how the color buffer
     // and video frame ExternalSurface buffer should be rendered. The eyeFromQuad matrix
     // describes how the video Surface frame should be transformed and rendered in eye space.
@@ -187,6 +193,29 @@ public class VideoSceneRenderer implements Renderer {
     videoScene.setHasVideoPlaybackStarted(shouldShowVideo);
     videoScene.setVideoSurfaceId(videoSurfaceID);
     videoScene.setVideoTransform(worldFromQuad);
+  }
+
+  private void updateHeadAndEyeMatrices() {
+    api.getHeadSpaceFromStartSpaceRotation(
+        headFromWorld, System.nanoTime() + predictionOffsetNanos);
+    for (int eye = 0; eye < 2; ++eye) {
+      api.getEyeFromHeadMatrix(eye, eyeFromHead);
+      Matrix.multiplyMM(eyeFromWorld[eye], 0, eyeFromHead, 0, headFromWorld, 0);
+    }
+    if (gvrAudioProcessor != null) {
+      float sx = headFromWorld[0];
+      float sy = headFromWorld[5];
+      float sz = headFromWorld[10];
+      float w = (float) Math.sqrt(Math.max(0.0f, 1.0 + sx + sy + sz)) * 0.5f;
+      float x = (float) Math.sqrt(Math.max(0.0f, 1.0 + sx - sy - sz)) * 0.5f;
+      float y = (float) Math.sqrt(Math.max(0.0f, 1.0 - sx + sy - sz)) * 0.5f;
+      float z = (float) Math.sqrt(Math.max(0.0f, 1.0 - sx - sy + sz)) * 0.5f;
+      gvrAudioProcessor.updateOrientation(
+          (headFromWorld[6] - headFromWorld[9] < 0) != (x < 0) ? -x : x,
+          (headFromWorld[8] - headFromWorld[2] < 0) != (y < 0) ? -y : y,
+          (headFromWorld[1] - headFromWorld[4] < 0) != (z < 0) ? -z : z,
+          w);
+    }
   }
 
   private void populateBufferViewportList() {
@@ -210,7 +239,7 @@ public class VideoSceneRenderer implements Renderer {
       viewportList.set(2 + eye, scratchViewport);
     }
   }
-  
+
   private void drawScene(GL10 gl, Frame frame) {
     // Draw the scene framebuffer.
     frame.bindBuffer(INDEX_SCENE_BUFFER);

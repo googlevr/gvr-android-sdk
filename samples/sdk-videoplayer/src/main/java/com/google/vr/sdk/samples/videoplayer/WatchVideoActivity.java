@@ -34,7 +34,7 @@ import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
 /**
  * Simple activity for video playback using the Asynchronous Reprojection Video Surface API. For a
  * detailed description of the API, see the <a
- * href="https://developers.google.com/vr/android/ndk/gvr-ndk-walkthrough#using_video_viewports">ndk
+ * href="https://developers.google.com/vr/android/ndk/gvr-ndk-rendering#using_video_viewports">ndk
  * walkthrough</a>. This sample supports DRM and unprotected video playback, configured in {@link
  * Configuration}.
  *
@@ -142,23 +142,17 @@ public class WatchVideoActivity extends Activity {
           }
         };
 
-    // Note that the video Surface must be enabled before enabling Async Reprojection.
-    // Async Reprojection must be enabled for the app to be able to use the video Surface.
-    boolean isSurfaceEnabled =
+    // Note that enabling video Surface support will also enable async reprojection.
+    boolean isAsyncReprojectionEnabled =
         gvrLayout.enableAsyncReprojectionVideoSurface(
             videoSurfaceListener,
             new Handler(Looper.getMainLooper()),
             /* Whether video playback should use a protected reprojection pipeline. */
-            Configuration.USE_PROTECTED_PIPELINE);
-    boolean isAsyncReprojectionEnabled = gvrLayout.setAsyncReprojectionEnabled(true);
+            isProtectedPipeline());
 
-    if (!isSurfaceEnabled || !isAsyncReprojectionEnabled) {
+    if (!isAsyncReprojectionEnabled) {
       // The device does not support this API, video will not play.
-      Log.e(
-          TAG,
-          "UnsupportedException: "
-              + (!isAsyncReprojectionEnabled ? "Async Reprojection not supported. " : "")
-              + (!isSurfaceEnabled ? "Async Reprojection Video Surface not enabled." : ""));
+      Log.e(TAG, "UnsupportedException: Async Reprojection with Video is unsupported.");
     } else {
       initVideoPlayer();
 
@@ -195,7 +189,7 @@ public class WatchVideoActivity extends Activity {
     Uri streamUri;
     String drmVideoId = null;
 
-    if (Configuration.USE_DRM_VIDEO_SAMPLE) {
+    if (isDrmVideoSample()) {
       // Protected video, requires a secure path for playback.
       streamUri = Uri.parse("https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd");
       drmVideoId = "0894c7c8719b28a0";
@@ -206,6 +200,7 @@ public class WatchVideoActivity extends Activity {
 
     try {
       videoPlayer.initPlayer(streamUri, drmVideoId);
+      renderer.setGvrAudioProcessor(videoPlayer.getGvrAudioProcessor());
     } catch (UnsupportedDrmException e) {
       Log.e(TAG, "Error initializing video player", e);
     }
@@ -226,9 +221,8 @@ public class WatchVideoActivity extends Activity {
           }
         });
 
-    // Resume the surfaceView and gvrLayout here. This will start the render thread and trigger a
-    // new async reprojection video Surface to become available.
-    surfaceView.onResume();
+    // Resume gvrLayout here. This will start the render thread and trigger a new async reprojection
+    // video Surface to become available.
     gvrLayout.onResume();
     // Refresh the viewer profile in case the viewer params were changed.
     surfaceView.queueEvent(refreshViewerProfileRunnable);
@@ -254,15 +248,15 @@ public class WatchVideoActivity extends Activity {
   @Override
   protected void onStop() {
     if (videoPlayer != null) {
+      renderer.setGvrAudioProcessor(null);
       videoPlayer.releasePlayer();
       videoPlayer = null;
     }
-    // Pause the gvrLayout and surfaceView here. The video Surface is guaranteed to be detached and
-    // not available after gvrLayout.onPause(). We pause from onStop() to avoid needing to wait
-    // for an available video Surface following brief onPause()/onResume() events. Wait for the
-    // new onSurfaceAvailable() callback with a valid Surface before resuming the video player.
+    // Pause the gvrLayout here. The video Surface is guaranteed to be detached and not available
+    // after gvrLayout.onPause(). We pause from onStop() to avoid needing to wait for an available
+    // video Surface following brief onPause()/onResume() events. Wait for the new
+    // onSurfaceAvailable() callback with a valid Surface before resuming the video player.
     gvrLayout.onPause();
-    surfaceView.onPause();
     super.onStop();
   }
 
@@ -290,6 +284,12 @@ public class WatchVideoActivity extends Activity {
     }
   }
 
+  @Override
+  public void onBackPressed() {
+    super.onBackPressed();
+    gvrLayout.onBackPressed();
+  }
+
   private void setImmersiveSticky() {
     getWindow()
         .getDecorView()
@@ -309,5 +309,13 @@ public class WatchVideoActivity extends Activity {
   /** @return {@code true} if the first video frame has played **/
   protected boolean hasFirstFrame() {
     return hasFirstFrame;
+  }
+
+  protected boolean isDrmVideoSample() {
+    return Configuration.USE_DRM_VIDEO_SAMPLE;
+  }
+
+  protected boolean isProtectedPipeline() {
+    return Configuration.USE_PROTECTED_PIPELINE;
   }
 }
