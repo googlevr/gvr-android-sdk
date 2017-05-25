@@ -53,7 +53,7 @@ model {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-base:1.60.0'
+    compile 'com.google.vr:sdk-base:1.60.1'
 }
 
 build.dependsOn(':extractNdk')
