@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.google.vr.sdk.samples.controllerclient"
-  android:versionCode="170509033"
-  android:versionName="1.60.1">
+  android:versionCode="170614023"
+  android:versionName="1.70.0">
   <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="24" />
 
   <application

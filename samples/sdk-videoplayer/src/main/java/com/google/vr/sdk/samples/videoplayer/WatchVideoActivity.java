@@ -221,8 +221,9 @@ public class WatchVideoActivity extends Activity {
           }
         });
 
-    // Resume gvrLayout here. This will start the render thread and trigger a new async reprojection
-    // video Surface to become available.
+    // Resume the surfaceView and gvrLayout here. This will start the render thread and trigger a
+    // new async reprojection video Surface to become available.
+    surfaceView.onResume();
     gvrLayout.onResume();
     // Refresh the viewer profile in case the viewer params were changed.
     surfaceView.queueEvent(refreshViewerProfileRunnable);
@@ -252,11 +253,12 @@ public class WatchVideoActivity extends Activity {
       videoPlayer.releasePlayer();
       videoPlayer = null;
     }
-    // Pause the gvrLayout here. The video Surface is guaranteed to be detached and not available
-    // after gvrLayout.onPause(). We pause from onStop() to avoid needing to wait for an available
-    // video Surface following brief onPause()/onResume() events. Wait for the new
-    // onSurfaceAvailable() callback with a valid Surface before resuming the video player.
+    // Pause the gvrLayout and surfaceView here. The video Surface is guaranteed to be detached and
+    // not available after gvrLayout.onPause(). We pause from onStop() to avoid needing to wait
+    // for an available video Surface following brief onPause()/onResume() events. Wait for the
+    // new onSurfaceAvailable() callback with a valid Surface before resuming the video player.
     gvrLayout.onPause();
+    surfaceView.onPause();
     super.onStop();
   }
 

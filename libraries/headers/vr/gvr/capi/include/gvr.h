@@ -94,7 +94,7 @@ extern "C" {
 ///           right_eye_matrix);
 ///       AppSetRenderTarget(primary_display);
 ///
-///       gvr_frame_submit(&frame, viewport_list, head_matrix);
+///       gvr_frame_submit(&frame, viewport_list, head_view);
 ///     }
 ///
 ///     // Cleanup memory.
@@ -219,8 +219,7 @@ void gvr_destroy(gvr_context** gvr);
 
 /// Initializes necessary GL-related objects and uses the current thread and
 /// GL context for rendering. Please make sure that a valid GL context is
-/// available when this function is called.  This should never be called more
-/// than once on the same GL context (doing so would cause resource leaks).
+/// available when this function is called.
 ///
 /// @param gvr Pointer to the gvr instance to be initialized.
 void gvr_initialize_gl(gvr_context* gvr);
@@ -688,6 +687,10 @@ void gvr_swap_chain_resize_buffer(gvr_swap_chain* swap_chain, int32_t index,
 /// the frame can then be bound with gvr_frame_bind_buffer(). Once the frame
 /// is finished and all its constituent buffers are ready, call
 /// gvr_frame_submit() to display it while applying lens distortion.
+///
+/// When this is called, the current thread's GL context must be the same
+/// context that was current when gvr_initialize_gl() was called, or at least be
+/// in a share group with the initialization context.
 ///
 /// @param swap_chain The swap chain.
 /// @return Handle to the acquired frame. NULL if the swap chain is invalid,
@@ -1542,7 +1545,7 @@ class SwapChain {
 ///       AppDoSomeRenderingForEye(
 ///           right_eye_viewport.GetSourceUv(), right_eye_view);
 ///       frame.Unbind();
-///       frame.Submit(viewport_list, head_matrix);
+///       frame.Submit(viewport_list, head_view);
 ///     }
 ///
 class GvrApi {

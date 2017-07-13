@@ -125,7 +125,7 @@ extern "C" {
 /// NOTE: If a sound object, soundfield or stereo sound is created with a file
 /// that has not been preloaded, that audio will be streamed.
 ///
-/// **Spatializtion of sound objects**
+/// **Spatialization of sound objects**
 ///
 /// The GVR Audio System allows the user to create virtual sound objects which
 /// can be placed anywhere in space around the listener.
@@ -148,6 +148,23 @@ extern "C" {
 ///     void
 ///     gvr_audio_set_sound_volume(gvr_audio_context* api,
 ///                                gvr_audio_source_id source_id, float volume);
+///
+/// The GVR Audio System also support directivity patterns per sound source
+/// which define a shape or pattern that describes the way in which sound
+/// emanates from a source in different directions. The directivity pattern
+/// takes two values: alpha and order. Alpha is a weighting balance between a
+/// figure-8 pattern and omnidirectional pattern for source emission in the
+/// range [0, 1]. A value of 0.5 results in a cardioid pattern. Order is applied
+/// to computed directivity. Higher values will result in narrower and sharper
+/// directivity patterns, with a range of [1, inf).
+///
+///     void gvr_audio_set_sound_object_directivity(
+///         gvr_audio_context* api, gvr_audio_source_id sound_object_id,
+///         float alpha, float order);
+///
+///     void gvr_audio_set_sound_object_rotation(
+///         gvr_audio_context* api, gvr_audio_source_id sound_object_id,
+///         gvr_quatf sound_object_rotation);
 ///
 /// The behavior of Sound Objects with respect to their distance from the
 /// listener can be controlled via calls to the following method:
@@ -424,8 +441,9 @@ void gvr_audio_unload_soundfile(gvr_audio_context* api, const char* filename);
 ///
 /// @param api Pointer to a gvr_audio_context.
 /// @param filename The path/name of the file to be played.
-/// @return Id of new sound object. Returns kInvalidId if the sound file has not
-///     been preloaded or if the number of input channels is > 1.
+/// @return Id of new sound object. Returns GVR_AUDIO_INVALID_SOURCE_ID if the
+///     sound file has not been preloaded or if the number of input channels
+///      is > 1.
 gvr_audio_source_id gvr_audio_create_sound_object(gvr_audio_context* api,
                                                   const char* filename);
 
@@ -435,9 +453,9 @@ gvr_audio_source_id gvr_audio_create_sound_object(gvr_audio_context* api,
 ///
 /// @param api Pointer to a gvr_audio_context.
 /// @param filename The path/name of the file to be played.
-/// @return Id of new soundfield. Returns kInvalidId if the sound file has not
-///     been preloaded or if the number of input channels does not match that
-///     required.
+/// @return Id of new soundfield. Returns GVR_AUDIO_INVALID_SOURCE_ID if the
+///     sound file has not been preloaded or if the number of input channels
+///     does not match that required.
 gvr_audio_source_id gvr_audio_create_soundfield(gvr_audio_context* api,
                                                 const char* filename);
 
@@ -447,9 +465,9 @@ gvr_audio_source_id gvr_audio_create_soundfield(gvr_audio_context* api,
 ///
 /// @param api Pointer to a gvr_audio_context.
 /// @param filename The path/name of the file to be played..
-/// @return Id of new stereo non-spatialized source. Returns kInvalidId if the
-///     sound file has not been preloaded or if the number of input channels is
-///     > 2;
+/// @return Id of new stereo non-spatialized source. Returns
+///     GVR_AUDIO_INVALID_SOURCE_ID if the sound file has not been preloaded or
+///     if the number of input channels is > 2;
 gvr_audio_source_id gvr_audio_create_stereo_sound(gvr_audio_context* api,
                                                   const char* filename);
 
@@ -510,6 +528,29 @@ bool gvr_audio_is_source_id_valid(const gvr_audio_context* api,
 void gvr_audio_set_sound_object_position(gvr_audio_context* api,
                                          gvr_audio_source_id sound_object_id,
                                          float x, float y, float z);
+
+/// Sets the sound object directivity constants for an existing sound object.
+///
+/// @param api Pointer to a gvr_audio_context.
+/// @param sound_object_id Id of the sound object to configure.
+/// @param alpha A weighting balance between a figure-8 pattern and
+///     omnidirectional pattern for source emission in the range [0, 1]. A value
+///     of 0.5 results in a cardioid pattern.
+/// @param order Applied to computed directivity. Higher values will result in
+/// narrower and sharper directivity patterns, with a range of [1, inf).
+void gvr_audio_set_sound_object_directivity(gvr_audio_context* api,
+                                            gvr_audio_source_id sound_object_id,
+                                            float alpha, float order);
+
+/// Sets the given sound object's rotation. Only applies if
+/// gvr_audio_set_sound_object_directivity has been called on the sound.
+///
+/// @param api Pointer to a gvr_audio_context.
+/// @param soundfield_id Id of the sound object to be rotated.
+/// @param object_rotation Quaternion representing the sound object rotation.
+void gvr_audio_set_sound_object_rotation(gvr_audio_context* api,
+                                         gvr_audio_source_id sound_object_id,
+                                         gvr_quatf sound_object_rotation);
 
 /// Sets the given ambisonic soundfields's rotation.
 ///
@@ -745,6 +786,22 @@ class AudioApi {
   void SetSoundObjectPosition(AudioSourceId sound_object_id, float x, float y,
                               float z) {
     gvr_audio_set_sound_object_position(context_, sound_object_id, x, y, z);
+  }
+
+  /// Sets directivity constants for an existing sound object.
+  /// For more information, see gvr_audio_set_sound_object_directivity.
+  void SetSoundObjectDirectivity(AudioSourceId sound_object_id, float alpha,
+                                 float order) {
+    gvr_audio_set_sound_object_directivity(context_, sound_object_id, alpha,
+                                           order);
+  }
+
+  /// Sets the rotation for an existing sound object.
+  /// For more information, see gvr_audio_set_sound_object_rotation.
+  void SetSoundObjectRotation(AudioSourceId sound_object_id,
+                              const Quatf& sound_object_quat) {
+    gvr_audio_set_sound_object_rotation(context_, sound_object_id,
+                                        sound_object_quat);
   }
 
   void SetSoundObjectDistanceRolloffModel(

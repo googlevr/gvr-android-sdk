@@ -154,14 +154,14 @@ void gvr_controller_destroy(gvr_controller_context** api);
 /// Calling this when already paused is a no-op.
 /// Thread-safe (call from any thread).
 ///
-/// @param api Pointer to a pointer to a gvr_controller_context.
+/// @param api Pointer to a gvr_controller_context.
 void gvr_controller_pause(gvr_controller_context* api);
 
 /// Resumes the controller. Call this when your app/game regains focus.
 /// Calling this when already resumed is a no-op.
 /// Thread-safe (call from any thread).
 ///
-/// @param api Pointer to a pointer to a gvr_controller_context.
+/// @param api Pointer to a gvr_controller_context.
 void gvr_controller_resume(gvr_controller_context* api);
 
 /// Convenience to convert an API status code to string. The returned pointer
@@ -196,9 +196,9 @@ void gvr_controller_state_destroy(gvr_controller_state** state);
 /// const getter: it has side-effects. In particular, some of the
 /// gvr_controller_state fields (the ones documented as "transient") represent
 /// one-time events and will be true for only one read operation, and false
-/// in subsequente reads.
+/// in subsequent reads.
 ///
-/// @param api Pointer to a pointer to a gvr_controller_context.
+/// @param api Pointer to a gvr_controller_context.
 /// @param flags Optional flags reserved for future use. A value of 0 should be
 ///     used until corresponding flag attributes are defined and documented.
 /// @param out_state A pointer where the controller's state
@@ -206,6 +206,26 @@ void gvr_controller_state_destroy(gvr_controller_state** state);
 ///     gvr_controller_state_create().
 void gvr_controller_state_update(gvr_controller_context* api, int32_t flags,
                                  gvr_controller_state* out_state);
+
+/// Sets up arm model with user's handedness, gaze behavior and head rotation.
+/// This setting needs to be applied for every frame. User preferences of
+/// handedness and gaze behavior can be changed as needed in a sequence of
+/// frames. This needs to be called before gvr_controller_state_update() to
+/// apply arm model. GVR_CONTROLLER_ENABLE_ARM_MODEL flag needs to be enabled
+/// to apply arm model.
+///
+/// @param api Pointer to a gvr_controller_context.
+/// @param handedness User's preferred handedness (GVR_CONTROLLER_RIGHT_HANDED
+///     or GVR_CONTROLLER_LEFT_HANDED). Arm model will assume this is the hand
+///     that is holding the controller and position the arm accordingly.
+/// @param behavior User's preferred gaze behavior (SYNC_GAZE / FOLLOW_GAZE
+///     / IGNORE_GAZE). Arm model uses this to determine how the body rotates as
+///     gaze direction (i.e. head rotation) changes.
+/// @param head_space_from_start_space_rotation User's head rotation with
+///     respect to start space.
+void gvr_controller_apply_arm_model(
+    gvr_controller_context* api, int32_t handedness, int32_t behavior,
+    gvr_mat4f head_space_from_start_space_rotation);
 
 /// Gets the API status of the controller state. Returns one of the
 /// gvr_controller_api_status variants, but returned as an int32_t for ABI
@@ -245,8 +265,8 @@ int32_t gvr_controller_state_get_connection_state(
 /// time due to controller/headset drift. A recentering operation will bring
 /// the two spaces back into sync.
 ///
-/// Remember that a quaternion expresses a rotation. Given a rotation of theta
-/// radians about the (x, y, z) axis, the corresponding quaternion (in
+/// Remember that a unit quaternion expresses a rotation. Given a rotation of
+/// theta radians about the (x, y, z) axis, the corresponding quaternion (in
 /// xyzw order) is:
 ///
 ///     (x * sin(theta/2), y * sin(theta/2), z * sin(theta/2), cos(theta/2))
@@ -441,7 +461,6 @@ const char* gvr_controller_battery_level_to_string(int32_t level);
 }  // extern "C"
 #endif
 
-
 // Convenience C++ wrapper.
 #if defined(__cplusplus) && !defined(GVR_NO_CPP_WRAPPER)
 
@@ -600,8 +619,18 @@ class ControllerApi {
   /// @name Wrapper manipulation
   /// @{
   /// Creates a C++ wrapper for a C object and takes ownership.
-  explicit ControllerApi(gvr_controller_context* context)
-      : context_(context) {}
+  explicit ControllerApi(gvr_controller_context* context) : context_(context) {}
+
+  /// For more information, see
+  /// gvr_controller_apply_arm_model(gvr_controller_context* api, int32_t
+  /// handedness, int32_t behavior, gvr_mat4f
+  /// head_space_from_start_space_rotation);
+  void ApplyArmModel(const ControllerHandedness handedness,
+                     const ArmModelBehavior behavior,
+                     const Mat4f& head_space_from_start_space_rotation) {
+    gvr_controller_apply_arm_model(context_, handedness, behavior,
+                                   head_space_from_start_space_rotation);
+  }
 
   /// Returns the wrapped C object. Does not affect ownership.
   gvr_controller_context* cobj() { return context_; }

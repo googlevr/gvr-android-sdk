@@ -858,9 +858,9 @@ bool TreasureHuntRenderer::IsPointingAtObject() {
   const std::array<float, 4> center_cube_position =
       MatrixVectorMul(modelview_cube, {0.f, 0.f, 0.f, 1.f});
 
-  float angle = std::acos(
+  float angle = std::acos(std::max(-1.f, std::min(1.f,
       VectorInnerProduct(center_cursor_position, center_cube_position) /
-      VectorNorm(center_cursor_position) / VectorNorm(center_cube_position));
+      VectorNorm(center_cursor_position) / VectorNorm(center_cube_position))));
   return angle < kAngleLimit;
 }
 
