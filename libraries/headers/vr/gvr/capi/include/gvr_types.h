@@ -19,6 +19,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#if defined(__cplusplus) && !defined(GVR_NO_CPP_WRAPPER)
+#include <cassert>
+#include <type_traits>
+#include <utility>  // for std::swap
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -41,7 +47,7 @@ typedef enum {
 typedef enum {
   /// A Cardboard-compatible viewer. A typical Cardboard viewer supports a
   /// simple touchscreen-based trigger input mechanism. On most platforms, this
-  // is the default viewer type if no viewer has been explicitly paired.
+  /// is the default viewer type if no viewer has been explicitly paired.
   GVR_VIEWER_TYPE_CARDBOARD = 0,
   /// A Daydream-compatible viewer. A typical Daydream viewer supports 3DOF
   /// controller input (as defined in gvr_controller.h), and is intended only
@@ -50,19 +56,22 @@ typedef enum {
   GVR_VIEWER_TYPE_DAYDREAM = 1,
 } gvr_viewer_type;
 
-// Types of VR-specific features which may or may not be supported on the
-// underlying platform.
+/// Types of VR-specific features which may or may not be supported on the
+/// underlying platform.
 typedef enum {
-  // Asynchronous reprojection warps the app's rendered frame using the most
-  // recent head pose just before pushing the frame to the display.
+  /// Asynchronous reprojection warps the app's rendered frame using the most
+  /// recent head pose just before pushing the frame to the display.
   GVR_FEATURE_ASYNC_REPROJECTION = 0,
-  // Support for framebuffers suitable for rendering with the GL_OVR_multiview2
-  // and GL_OVR_multiview_multisampled_render_to_texture extensions.
+  /// Support for framebuffers suitable for rendering with the GL_OVR_multiview2
+  /// and GL_OVR_multiview_multisampled_render_to_texture extensions.
   GVR_FEATURE_MULTIVIEW = 1,
-  // Support for external surface creation and compositing. Note that this
-  // feature may be supported only under certain configurations, e.g., when
-  // async reprojection is explicitly enabled.
-  GVR_FEATURE_EXTERNAL_SURFACE = 2
+  /// Support for external surface creation and compositing. Note that this
+  /// feature may be supported only under certain configurations, e.g., when
+  /// async reprojection is explicitly enabled.
+  GVR_FEATURE_EXTERNAL_SURFACE = 2,
+  /// Support for providing head poses with 6 degrees-of-freedom (orientation
+  /// and position).
+  GVR_FEATURE_HEAD_POSE_6DOF = 3,
 } gvr_feature;
 
 /// @}
@@ -113,7 +122,9 @@ typedef struct gvr_vec3f {
 
 /// A floating point 4x4 matrix stored in row-major form. It needs to be
 /// transposed before being used with OpenGL.
-typedef struct gvr_mat4f { float m[4][4]; } gvr_mat4f;
+typedef struct gvr_mat4f {
+  float m[4][4];
+} gvr_mat4f;
 
 /// A floating point quaternion, in JPL format.
 /// We use this simple struct in order not to impose a dependency on a
@@ -175,6 +186,71 @@ typedef struct gvr_swap_chain_ gvr_swap_chain;
 /// chain.
 typedef struct gvr_frame_ gvr_frame;
 
+/// Generic flag type.
+typedef uint32_t gvr_flags;
+
+/// Opaque handle to a collection of properties.
+typedef struct gvr_properties_ gvr_properties;
+
+/// A generic container for various pure value types.
+typedef struct gvr_value {
+  int32_t value_type;  // gvr_value_type
+  gvr_flags flags;
+  union {
+    float f;
+    double d;
+    int32_t i;
+    int64_t i64;
+    gvr_flags fl;
+    gvr_sizei si;
+    gvr_recti ri;
+    gvr_rectf rf;
+    gvr_vec2f v2f;
+    gvr_vec3f v3f;
+    gvr_quatf qf;
+    gvr_mat4f m4f;
+    gvr_clock_time_point t;
+
+    // Pad the struct to 256 bytes.
+    uint8_t padding[248];
+  };
+} gvr_value;
+
+/// @addtogroup types
+/// @{
+
+/// The type of a recentering associated with a GVR_EVENT_RECENTER event.
+typedef enum {
+  /// A recenter event triggered by headset removal and re-attachment.
+  GVR_RECENTER_EVENT_RESTART = 1,
+
+  /// A recenter event triggered by the controller.
+  GVR_RECENTER_EVENT_ALIGNED = 2,
+} gvr_recenter_event_type;
+
+/// @}
+
+/// Event data associated with a system-initiated GVR_EVENT_RECENTER event. The
+/// client may wish to handle this event to provide custom recentering logic.
+typedef struct gvr_recenter_event_data {
+  gvr_recenter_event_type recenter_type;
+  gvr_flags recenter_event_flags;
+  gvr_mat4f start_space_from_tracking_space_transform;
+} gvr_recenter_event_data;
+
+/// Container for various GVR-events to which the client can optionally respond.
+typedef struct gvr_event {
+  gvr_clock_time_point timestamp;
+  int32_t type;  // gvr_event_type
+  gvr_flags flags;
+  union {
+    gvr_recenter_event_data recenter_event_data;
+
+    // Pad the struct to 512 bytes.
+    uint8_t padding[496];
+  };
+} gvr_event;
+
 /// @addtogroup types
 /// @{
 
@@ -183,6 +259,14 @@ typedef enum {
   GVR_ERROR_NONE = 0,
   GVR_ERROR_CONTROLLER_CREATE_FAILED = 2,
   GVR_ERROR_NO_FRAME_AVAILABLE = 3,
+
+  /// Error code indicating that no events are currently available.
+  /// See also gvr_poll_event()
+  GVR_ERROR_NO_EVENT_AVAILABLE = 1000000,
+
+  /// Error code indicating that the given property is not available.
+  /// See also gvr_properties_get().
+  GVR_ERROR_NO_PROPERTY_AVAILABLE = 1000001,
 } gvr_error;
 
 /// Controller API options (bit flags).
@@ -272,7 +356,6 @@ typedef enum {
   /// of an UNKNOWN state before any battery information is collected, etc.
   GVR_CONTROLLER_BATTERY_LEVEL_COUNT = 6,
 } gvr_controller_battery_level;
-
 
 /// @}
 
@@ -393,6 +476,25 @@ typedef enum {
   // Third-order ambisonics (AmbiX format: 16 channels, ACN channel ordering,
   // SN3D normalization).
   GVR_AUDIO_SURROUND_FORMAT_THIRD_ORDER_AMBISONICS = 6,
+
+  // First-order ambisonics with a non-diegetic stereo. The first 4 channels
+  // contain ambisonic AmbiX format.
+  // (AmbiX format: 4 channels, ACN channel ordering, SN3D normalization).
+  // Channel 5 to 6 contain non-diegetic stereo.
+  GVR_AUDIO_SURROUND_FORMAT_FIRST_ORDER_AMBISONICS_WITH_NON_DIEGETIC_STEREO = 7,
+
+  // Second-order ambisonics with a non-diegetic stereo. The first 9 channels
+  // contain ambisonic AmbiX format.
+  // (AmbiX format: 9 channels, ACN channel ordering, SN3D normalization).
+  // Channel 10 to 11 contain non-diegetic stereo.
+  GVR_AUDIO_SURROUND_FORMAT_SECOND_ORDER_AMBISONICS_WITH_NON_DIEGETIC_STEREO =
+      8,
+
+  // Third-order ambisonics with a non-diegetic stereo. The first 16 channels
+  // contain ambisonic AmbiX format.
+  // (AmbiX format: 16 channels, ACN channel ordering, SN3D normalization).
+  // Channel 17 to 18 contain non-diegetic stereo.
+  GVR_AUDIO_SURROUND_FORMAT_THIRD_ORDER_AMBISONICS_WITH_NON_DIEGETIC_STEREO = 9,
 } gvr_audio_surround_format_type;
 
 /// Valid color formats for swap chain buffers.
@@ -461,6 +563,83 @@ enum {
   GVR_AUDIO_INVALID_SOURCE_ID = -1,
 };
 
+/// Property types exposed by the gvr_properties_get() API.
+typedef enum {
+  /// The height of the floor, if available, relative to the current start space
+  /// origin. In general, for tracking systems with an eye level origin, this
+  /// value will be negative.
+  /// Type: float
+  GVR_PROPERTY_TRACKING_FLOOR_HEIGHT = 1,
+
+  /// The current transform that maps from "sensor" space to the recentered
+  /// "start" space. Apps can optionally undo or extend this transform to
+  /// perform custom recentering logic with the returned pose, but all poses
+  /// supplied during frame submission are assumed to be in start space.
+  /// Type: gvr_mat4f
+  GVR_PROPERTY_RECENTER_TRANSFORM = 2,
+
+  /// The type of safety region, if any, currently employed by the headset's
+  /// tracker.
+  /// Type: int (gvr_safety_region_type)
+  GVR_PROPERTY_SAFETY_REGION = 3,
+
+  /// Inner radius for the safety cylinder region, outside of which a safety fog
+  /// effect will begin to be applied.
+  /// Type: float
+  GVR_PROPERTY_SAFETY_CYLINDER_INNER_RADIUS = 4,
+
+  /// Outer radius for the safety cylinder region, outside of which a safety fog
+  /// effect is fully applied.
+  /// Type: float
+  GVR_PROPERTY_SAFETY_CYLINDER_OUTER_RADIUS = 5,
+} gvr_property_type;
+
+// Safety region types exposed from the GVR_PROPERTY_SAFETY_REGION property.
+typedef enum {
+  GVR_SAFETY_REGION_NONE = 0,
+
+  // A safety region defined by a vertically-oriented cylinder, extending
+  // infinitely along the Y axis, and centered at the start space origin.
+  // Extents can be queried with the GVR_PROPERTY_SAFETY_CYLINDER_INNER_RADIUS
+  // and GVR_PROPERTY_SAFETY_CYLINDER_OUTER_RADIUS property keys.
+  GVR_SAFETY_REGION_CYLINDER = 1,
+} gvr_safety_region_type;
+
+/// Value types for the contents of a gvr_value object instance.
+typedef enum {
+  GVR_VALUE_TYPE_NONE = 0,
+  GVR_VALUE_TYPE_FLOAT = 1,
+  GVR_VALUE_TYPE_DOUBLE = 2,
+  GVR_VALUE_TYPE_INT = 3,
+  GVR_VALUE_TYPE_INT64 = 4,
+  GVR_VALUE_TYPE_FLAGS = 5,
+  GVR_VALUE_TYPE_SIZEI = 6,
+  GVR_VALUE_TYPE_RECTI = 7,
+  GVR_VALUE_TYPE_RECTF = 8,
+  GVR_VALUE_TYPE_VEC2F = 9,
+  GVR_VALUE_TYPE_VEC3F = 10,
+  GVR_VALUE_TYPE_QUATF = 11,
+  GVR_VALUE_TYPE_MAT4F = 12,
+  GVR_VALUE_TYPE_CLOCK_TIME_POINT = 13,
+} gvr_value_type;
+
+/// The type of gvr_event.
+typedef enum {
+  /// Notification that a global recentering event has occurred.
+  /// Event data type: gvr_recenter_event_data
+  GVR_EVENT_RECENTER = 1,
+
+  /// Notification that the user has exited the safety region, as defined by the
+  /// gvr_safety_region_type.
+  /// Event data type: none
+  GVR_EVENT_SAFETY_REGION_EXIT = 2,
+
+  /// Notification that the user has re-entered the safety region, as defined by
+  /// the gvr_safety_region_type.
+  /// Event data type: none
+  GVR_EVENT_SAFETY_REGION_ENTER = 3,
+} gvr_event_type;
+
 /// @}
 
 #ifdef __cplusplus
@@ -468,10 +647,65 @@ enum {
 #endif
 
 #if defined(__cplusplus) && !defined(GVR_NO_CPP_WRAPPER)
-// These typedefs convert the C-style names to C++-style names.
-
 namespace gvr {
 
+template <typename WrappedType>
+void NoopDestroy(WrappedType** cobject) {
+  // Make sure that we don't forget to specify the destroy function.
+  // If the wrapped object type doesn't need destruction, add it here.
+  static_assert(std::is_same<WrappedType, gvr_frame>::value ||
+                    std::is_same<WrappedType, const gvr_user_prefs>::value ||
+                    std::is_same<WrappedType, const gvr_properties>::value,
+                "Did you forget to specify a destroy function?");
+}
+
+/// Base class for all C++ wrapper objects.
+template <typename WrappedType,
+          void (*DestroyFunction)(WrappedType**) = NoopDestroy<WrappedType>>
+class WrapperBase {
+ public:
+  /// Initializes a wrapper that holds a C object.
+  explicit WrapperBase(WrappedType* cobject = nullptr) : cobject_(cobject) {}
+
+  ~WrapperBase() {
+    if (cobject_ != nullptr) DestroyFunction(&cobject_);
+  }
+
+  WrapperBase(WrapperBase&& other) : cobject_(nullptr) {
+    std::swap(cobject_, other.cobject_);
+  }
+
+  WrapperBase& operator=(WrapperBase&& other) {
+    std::swap(cobject_, other.cobject_);
+    return *this;
+  }
+
+  // Disallow copy and assign.
+  WrapperBase(const WrapperBase&) = delete;
+  void operator=(const WrapperBase&) = delete;
+
+  /// Returns the wrapped C object. Does not affect ownership.
+  WrappedType* cobj() { return cobject_; }
+  const WrappedType* cobj() const { return cobject_; }
+
+  /// Returns the wrapped C object and transfers its ownership to the caller.
+  /// The wrapper becomes invalid and should not be used.
+  WrappedType* release() {
+    auto result = cobject_;
+    cobject_ = nullptr;
+    return result;
+  }
+
+  /// Returns true if the wrapper holds an object.
+  explicit operator bool() const {
+    return cobj() != nullptr;
+  }
+
+ protected:
+  WrappedType* cobject_;
+};
+
+// These typedefs convert the C-style names to C++-style names.
 const int32_t kControllerEnableOrientation =
     static_cast<int32_t>(GVR_CONTROLLER_ENABLE_ORIENTATION);
 const int32_t kControllerEnableTouch =
@@ -577,6 +811,9 @@ typedef gvr_vec3f Vec3f;
 typedef gvr_mat4f Mat4f;
 typedef gvr_quatf Quatf;
 typedef gvr_clock_time_point ClockTimePoint;
+typedef gvr_value Value;
+typedef gvr_event Event;
+typedef gvr_flags Flags;
 
 typedef gvr_vec2f ControllerVec2;
 typedef gvr_vec3f ControllerVec3;

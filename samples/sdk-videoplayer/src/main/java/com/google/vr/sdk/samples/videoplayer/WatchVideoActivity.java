@@ -16,6 +16,8 @@
 package com.google.vr.sdk.samples.videoplayer;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -46,6 +48,8 @@ import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
  */
 public class WatchVideoActivity extends Activity {
   private static final String TAG = WatchVideoActivity.class.getSimpleName();
+  private static final String LOCAL_PREFERENCE_FILE = "videoplayerPrefs";
+  private static final String USE_DRM_VIDEO_SAMPLE = "use_drm_video_sample";
 
   private GvrLayout gvrLayout;
   private GLSurfaceView surfaceView;
@@ -84,6 +88,15 @@ public class WatchVideoActivity extends Activity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    // Use extra intent arguments to dynamically disable/enable DRM.
+    Bundle intentParams = getIntent().getExtras();
+    if (intentParams != null && intentParams.containsKey(USE_DRM_VIDEO_SAMPLE)) {
+      boolean enableDrm = intentParams.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
+      Log.i(TAG, (enableDrm ? "Enable" : "Disable") + " DRM video per extra intent data.");
+      setUseDrmVideoPreference(enableDrm);
+    }
+
     setImmersiveSticky();
     getWindow()
         .getDecorView()
@@ -118,8 +131,10 @@ public class WatchVideoActivity extends Activity {
             // is started when the Surface is set. Note that this callback is *asynchronous* with
             // respect to the Surface becoming available, in which case videoPlayer may be null due
             // to the Activity having been stopped.
+            Log.i(TAG, "onSurfaceAvailable: " + surface);
             if (videoPlayer != null) {
               videoPlayer.setSurface(surface);
+              Log.i(TAG, "Video surface set on player.");
             }
           }
 
@@ -133,6 +148,7 @@ public class WatchVideoActivity extends Activity {
                 new Runnable() {
                   @Override
                   public void run() {
+                    Log.i(TAG, "Video has started playback, update renderer.");
                     renderer.setHasVideoPlaybackStarted(true);
                   }
                 });
@@ -148,7 +164,7 @@ public class WatchVideoActivity extends Activity {
             videoSurfaceListener,
             new Handler(Looper.getMainLooper()),
             /* Whether video playback should use a protected reprojection pipeline. */
-            isProtectedPipeline());
+            isDrmVideoSample());
 
     if (!isAsyncReprojectionEnabled) {
       // The device does not support this API, video will not play.
@@ -304,20 +320,34 @@ public class WatchVideoActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
   }
 
-  protected VideoExoPlayer2 getVideoExoPlayer() {
-    return videoPlayer;
-  }
-
-  /** @return {@code true} if the first video frame has played **/
-  protected boolean hasFirstFrame() {
-    return hasFirstFrame;
+  /**
+   * Use the below flag to test different use cases. With the flag set to false, the movie should
+   * play on any device. With the flag set to true, the movie will play only on phones that support
+   * EGL_EXT_protected_content.
+   */
+  public void setUseDrmVideoPreference(boolean useProtectVideo) {
+    SharedPreferences pref =
+        this.getSharedPreferences(LOCAL_PREFERENCE_FILE, Context.MODE_PRIVATE);
+    pref.edit().putBoolean(USE_DRM_VIDEO_SAMPLE, useProtectVideo).commit();
   }
 
   protected boolean isDrmVideoSample() {
-    return Configuration.USE_DRM_VIDEO_SAMPLE;
+    SharedPreferences pref =
+        this.getSharedPreferences(LOCAL_PREFERENCE_FILE, Context.MODE_PRIVATE);
+    return pref.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
   }
 
-  protected boolean isProtectedPipeline() {
-    return Configuration.USE_PROTECTED_PIPELINE;
+  /**
+   * Returns true if video is currently playing. This method should only be called in the UI thread.
+   */
+  public boolean isVideoPlaying() {
+    return (hasFirstFrame && !isVideoPaused());
+  }
+
+  /**
+   * Returns true if video is currently paused. This method should only be called in the UI thread.
+   */
+  public boolean isVideoPaused() {
+    return (videoPlayer != null) && (videoPlayer.isPaused());
   }
 }

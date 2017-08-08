@@ -207,7 +207,6 @@ namespace gvr {
 typedef gvr_gesture_direction GestureDirection;
 typedef gvr_gesture_type GestureType;
 typedef gvr_gesture Gesture;
-typedef gvr_gesture_context GestureContext;
 
 /// This is a convenience C++ wrapper for the Gesture C API.
 ///
@@ -259,35 +258,33 @@ typedef gvr_gesture_context GestureContext;
 ///        }
 ///     }
 ///
-class GestureApi {
+class GestureApi
+    : public WrapperBase<gvr_gesture_context, gvr_gesture_context_destroy> {
  public:
+  using WrapperBase::WrapperBase;
+
   /// Creates a GestureApi object. It is properly initialized and can handle
   /// gesture detection immediately.
-  GestureApi() { gesture_context_ = gvr_gesture_context_create(); }
-
-  /// Destroys this GestureApi instance.
-  ~GestureApi() {
-    if (gesture_context_) gvr_gesture_context_destroy(&gesture_context_);
-  }
+  GestureApi() : WrapperBase(gvr_gesture_context_create()) {}
 
   /// Restarts gesture detection.
   /// For more information, see gvr_gesture_restart().
-  void Restart() { gvr_gesture_restart(gesture_context_); }
+  void Restart() { gvr_gesture_restart(cobj()); }
 
   /// Updates gesture context based on current controller state.
   /// For more information, see gvr_gesture_update().
   void Update(const ControllerState* controller_state) {
-    gvr_gesture_update(controller_state->cobj(), gesture_context_);
+    gvr_gesture_update(controller_state->cobj(), cobj());
   }
 
   /// Returns the number of gestures detected.
   /// For more information, see gvr_gesture_get_count().
-  int GetGestureCount() { return gvr_gesture_get_count(gesture_context_); }
+  int GetGestureCount() { return gvr_gesture_get_count(cobj()); }
 
   /// Returns the gesture at given index.
   /// For more information, see gvr_gesture_get().
   const Gesture* GetGesture(int index) {
-    return gvr_gesture_get(gesture_context_, index);
+    return gvr_gesture_get(cobj(), index);
   }
 
   /// Returns the type of the given gesture.
@@ -318,16 +315,9 @@ class GestureApi {
   /// For more information, see gvr_get_button_long_press().
   bool GetButtonLongPress(const ControllerState* controller_state,
                           ControllerButton button) {
-    return gvr_get_button_long_press(controller_state->cobj(), gesture_context_,
+    return gvr_get_button_long_press(controller_state->cobj(), cobj(),
                                      button);
   }
-
- private:
-  GestureContext* gesture_context_;
-
-  // Disallows copy and assign:
-  GestureApi(const GestureApi&);
-  void operator=(const GestureApi&);
 };
 
 }  // namespace gvr

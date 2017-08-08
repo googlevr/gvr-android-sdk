@@ -18,7 +18,6 @@
 
 #include <stdint.h>
 
-#include "vr/gvr/capi/include/gvr.h"
 #include "vr/gvr/capi/include/gvr_types.h"
 
 #ifdef __cplusplus
@@ -153,25 +152,19 @@ namespace gvr {
 ///
 /// THREADING: this class is thread-safe and reentrant after initialized
 /// with Init().
-class AudioSurroundApi {
+class AudioSurroundApi
+    : public WrapperBase<gvr_audio_surround_context,
+                         gvr_audio_surround_destroy> {
  public:
-  /// Creates an (uninitialized) ControllerApi object. You must initialize
-  /// it by calling Init() before interacting with it.
-  AudioSurroundApi() : context_(nullptr) {}
-
-  ~AudioSurroundApi() {
-    if (context_) {
-      gvr_audio_surround_destroy(&context_);
-    }
-  }
+  using WrapperBase::WrapperBase;
 
   /// Creates and initializes a gvr_audio_context.
   /// For more information, see gvr_audio_surround_create().
   bool Init(AudioSurroundFormat surround_format, int32_t num_input_channels,
             int32_t frames_per_buffer, int sample_rate_hz) {
-    context_ = gvr_audio_surround_create(surround_format, num_input_channels,
+    cobject_ = gvr_audio_surround_create(surround_format, num_input_channels,
                                          frames_per_buffer, sample_rate_hz);
-    return context_ != nullptr;
+    return cobject_ != nullptr;
   }
 
   /// Returns the number of samples the input buffer is currently able to
@@ -179,7 +172,9 @@ class AudioSurroundApi {
   /// For more information, see
   /// gvr_audio_surround_get_available_input_size_samples().
   int64_t GetAvailableInputSizeSamples() const {
-    return gvr_audio_surround_get_available_input_size_samples(context_);
+    // TODO(b/62070848): Fix parameter constness of this function
+    return gvr_audio_surround_get_available_input_size_samples(
+        const_cast<gvr_audio_surround_context*>(cobj()));
   }
 
   /// Adds interleaved audio data to the renderer.
@@ -187,7 +182,7 @@ class AudioSurroundApi {
   /// gvr_audio_surround_add_interleaved_input().
   int64_t AddInterleavedInput(const int16_t* input_buffer_ptr,
                               int64_t num_samples) {
-    return gvr_audio_surround_add_interleaved_input(context_, input_buffer_ptr,
+    return gvr_audio_surround_add_interleaved_input(cobj(), input_buffer_ptr,
                                                     num_samples);
   }
 
@@ -195,7 +190,9 @@ class AudioSurroundApi {
   /// For more information, see
   /// gvr_audio_surround_get_available_output_size_samples().
   int64_t GetAvailableOutputSizeSamples() const {
-    return gvr_audio_surround_get_available_output_size_samples(context_);
+    // TODO(b/62070848): Fix parameter constness of this function
+    return gvr_audio_surround_get_available_output_size_samples(
+        const_cast<gvr_audio_surround_context*>(cobj()));
   }
 
   /// Gets a processed output buffer in interleaved format.
@@ -204,52 +201,26 @@ class AudioSurroundApi {
   int64_t GetInterleavedOutput(int16_t* output_buffer_ptr,
                                int64_t num_samples) {
     return gvr_audio_surround_get_interleaved_output(
-        context_, output_buffer_ptr, num_samples);
+        cobj(), output_buffer_ptr, num_samples);
   }
 
   /// Removes all buffered input and processed output buffers from the buffer
   /// queues.
   /// For more information, see gvr_audio_surround_clear().
-  void Clear() { gvr_audio_surround_clear(context_); }
+  void Clear() { gvr_audio_surround_clear(cobj()); }
 
   /// Triggers the processing of data that has been input but not yet processed.
   /// For more information, see
   /// gvr_audio_surround_trigger_processing().
   bool TriggerProcessing() {
-    return gvr_audio_surround_trigger_processing(context_);
+    return gvr_audio_surround_trigger_processing(cobj());
   }
 
   /// Updates the head rotation.
   /// For more information, see gvr_audio_surround_set_head_rotation().
   void SetHeadRotation(float w, float x, float y, float z) {
-    gvr_audio_surround_set_head_rotation(context_, w, x, y, z);
+    gvr_audio_surround_set_head_rotation(cobj(), w, x, y, z);
   }
-
-  /// @name Wrapper manipulation
-  /// @{
-  /// Creates a C++ wrapper for a C object and takes ownership.
-  explicit AudioSurroundApi(gvr_audio_surround_context* context)
-      : context_(context) {}
-
-  /// Returns the wrapped C object. Does not affect ownership.
-  gvr_audio_surround_context* cobj() { return context_; }
-  const gvr_audio_surround_context* cobj() const { return context_; }
-
-  /// Returns the wrapped C object and transfers its ownership to the caller.
-  /// The wrapper becomes invalid and should not be used.
-  gvr_audio_surround_context* Release() {
-    auto result = context_;
-    context_ = nullptr;
-    return result;
-  }
-  /// @}
-
- private:
-  gvr_audio_surround_context* context_;
-
-  // Disallow copy and assign:
-  AudioSurroundApi(const AudioSurroundApi&);
-  void operator=(const AudioSurroundApi&);
 };
 
 }  // namespace gvr

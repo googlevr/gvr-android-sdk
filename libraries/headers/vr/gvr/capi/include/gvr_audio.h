@@ -22,7 +22,6 @@
 
 #include <stdint.h>
 
-#include "vr/gvr/capi/include/gvr.h"
 #include "vr/gvr/capi/include/gvr_types.h"
 
 #ifdef __cplusplus
@@ -311,7 +310,7 @@ extern "C" {
 ///
 /// allows the user to describe the room based on its dimensions and its surface
 /// properties. For example, one can expect very large rooms to be more
-/// reverberant than smaller rooms, and a room with with hard surface materials
+/// reverberant than smaller rooms, and a room with hard surface materials
 /// such as brick to be more reverberant than one with soft absorbent materials
 /// such as heavy curtains on every surface.
 ///
@@ -676,123 +675,115 @@ namespace gvr {
 ///
 /// THREADING: this class is thread-safe and reentrant after initialized
 /// with Init().
-class AudioApi {
+class AudioApi : public WrapperBase<gvr_audio_context, gvr_audio_destroy> {
  public:
-  /// Creates an (uninitialized) ControllerApi object. You must initialize
-  /// it by calling Init() before interacting with it.
-  AudioApi() : context_(nullptr) {}
+  using WrapperBase::WrapperBase;
 
-  ~AudioApi() {
-    if (context_) {
-      gvr_audio_destroy(&context_);
-    }
-  }
-
-/// Creates and initializes a gvr_audio_context.
-/// For more information, see gvr_audio_create().
+  /// Creates and initializes a gvr_audio_context.
+  /// For more information, see gvr_audio_create().
 #ifdef __ANDROID__
   bool Init(JNIEnv* env, jobject android_context, jobject class_loader,
             AudioRenderingMode rendering_mode) {
-    context_ =
+    cobject_ =
         gvr_audio_create(env, android_context, class_loader, rendering_mode);
-    return context_ != nullptr;
+    return cobject_ != nullptr;
   }
 #else
   bool Init(AudioRenderingMode rendering_mode) {
-    context_ = gvr_audio_create(rendering_mode);
-    return context_ != nullptr;
+    cobject_ = gvr_audio_create(rendering_mode);
+    return cobject_ != nullptr;
   }
 #endif  // #ifdef __ANDROID__
 
   /// Pauses the audio engine.
   /// For more information, see gvr_audio_pause().
-  void Pause() { gvr_audio_pause(context_); }
+  void Pause() { gvr_audio_pause(cobj()); }
 
   /// Resumes the audio engine.
   /// For more information, see gvr_audio_resume().
-  void Resume() { gvr_audio_resume(context_); }
+  void Resume() { gvr_audio_resume(cobj()); }
 
   /// For more information, see gvr_audio_update().
-  void Update() { gvr_audio_update(context_); }
+  void Update() { gvr_audio_update(cobj()); }
 
   /// Preloads a local sound file.
   /// For more information, see gvr_audio_preload_soundfile().
   bool PreloadSoundfile(const std::string& filename) {
-    return gvr_audio_preload_soundfile(context_, filename.c_str());
+    return gvr_audio_preload_soundfile(cobj(), filename.c_str());
   }
 
   /// Unloads a previously preloaded sample from memory.
   /// For more information, see gvr_audio_preload_soundfile().
   void UnloadSoundfile(const std::string& filename) {
-    gvr_audio_unload_soundfile(context_, filename.c_str());
+    gvr_audio_unload_soundfile(cobj(), filename.c_str());
   }
 
   /// Returns a new sound object.
   /// For more information, see gvr_audio_create_sound_object().
   AudioSourceId CreateSoundObject(const std::string& filename) {
-    return gvr_audio_create_sound_object(context_, filename.c_str());
+    return gvr_audio_create_sound_object(cobj(), filename.c_str());
   }
 
   /// Returns a new sound field.
   /// For more information, see gvr_audio_create_soundfield().
   AudioSourceId CreateSoundfield(const std::string& filename) {
-    return gvr_audio_create_soundfield(context_, filename.c_str());
+    return gvr_audio_create_soundfield(cobj(), filename.c_str());
   }
 
   /// Returns a new stereo sound.
   /// For more information, see gvr_audio_create_stereo_sound().
   AudioSourceId CreateStereoSound(const std::string& filename) {
-    return gvr_audio_create_stereo_sound(context_, filename.c_str());
+    return gvr_audio_create_stereo_sound(cobj(), filename.c_str());
   }
 
   /// Starts the playback of a sound.
   /// For more information, see gvr_audio_play_sound().
   void PlaySound(AudioSourceId source_id, bool looping_enabled) {
-    gvr_audio_play_sound(context_, source_id, looping_enabled);
+    gvr_audio_play_sound(cobj(), source_id, looping_enabled);
   }
 
   /// Pauses the playback of a sound.
   /// For more information, see gvr_audio_pause_sound().
   void PauseSound(AudioSourceId source_id) {
-    gvr_audio_pause_sound(context_, source_id);
+    gvr_audio_pause_sound(cobj(), source_id);
   }
 
   /// Resumes the playback of a sound.
   /// For more information, see gvr_audio_resume_sound().
   void ResumeSound(AudioSourceId source_id) {
-    gvr_audio_resume_sound(context_, source_id);
+    gvr_audio_resume_sound(cobj(), source_id);
   }
 
   /// Stops the playback of a sound.
   /// For more information, see gvr_audio_stop_sound().
   void StopSound(AudioSourceId source_id) {
-    gvr_audio_stop_sound(context_, source_id);
+    gvr_audio_stop_sound(cobj(), source_id);
   }
 
   /// Checks if a sound is playing.
   /// For more information, see gvr_audio_is_sound_playing().
   bool IsSoundPlaying(AudioSourceId source_id) const {
-    return gvr_audio_is_sound_playing(context_, source_id);
+    return gvr_audio_is_sound_playing(cobj(), source_id);
   }
 
   /// Checks if a source is in a valid playable state.
   /// For more information, see gvr_audio_is_source_id_valid().
   bool IsSourceIdValid(AudioSourceId source_id) {
-    return gvr_audio_is_source_id_valid(context_, source_id);
+    return gvr_audio_is_source_id_valid(cobj(), source_id);
   }
 
   /// Repositions an existing sound object.
   /// For more information, see gvr_audio_set_sound_object_position().
   void SetSoundObjectPosition(AudioSourceId sound_object_id, float x, float y,
                               float z) {
-    gvr_audio_set_sound_object_position(context_, sound_object_id, x, y, z);
+    gvr_audio_set_sound_object_position(cobj(), sound_object_id, x, y, z);
   }
 
   /// Sets directivity constants for an existing sound object.
   /// For more information, see gvr_audio_set_sound_object_directivity.
   void SetSoundObjectDirectivity(AudioSourceId sound_object_id, float alpha,
                                  float order) {
-    gvr_audio_set_sound_object_directivity(context_, sound_object_id, alpha,
+    gvr_audio_set_sound_object_directivity(cobj(), sound_object_id, alpha,
                                            order);
   }
 
@@ -800,7 +791,7 @@ class AudioApi {
   /// For more information, see gvr_audio_set_sound_object_rotation.
   void SetSoundObjectRotation(AudioSourceId sound_object_id,
                               const Quatf& sound_object_quat) {
-    gvr_audio_set_sound_object_rotation(context_, sound_object_id,
+    gvr_audio_set_sound_object_rotation(cobj(), sound_object_id,
                                         sound_object_quat);
   }
 
@@ -809,38 +800,38 @@ class AudioApi {
       gvr_audio_distance_rolloff_type rolloff_model, float min_distance,
       float max_distance) {
     gvr_audio_set_sound_object_distance_rolloff_model(
-        context_, sound_object_id, rolloff_model, min_distance, max_distance);
+        cobj(), sound_object_id, rolloff_model, min_distance, max_distance);
   }
 
   /// Rotates an existing soundfield.
   /// For more information, see gvr_audio_set_soundfield_rotation().
   void SetSoundfieldRotation(AudioSourceId soundfield_id,
                              const Quatf& soundfield_rotation) {
-    gvr_audio_set_soundfield_rotation(context_, soundfield_id,
+    gvr_audio_set_soundfield_rotation(cobj(), soundfield_id,
                                       soundfield_rotation);
   }
 
   /// Changes the master volume.
   /// For more information, see gvr_audio_set_master_volume().
   void SetMasterVolume(float volume) {
-    gvr_audio_set_master_volume(context_, volume);
+    gvr_audio_set_master_volume(cobj(), volume);
   }
 
   /// Changes the volume of an existing sound.
   /// For more information, see gvr_audio_set_sound_volume().
   void SetSoundVolume(AudioSourceId source_id, float volume) {
-    gvr_audio_set_sound_volume(context_, source_id, volume);
+    gvr_audio_set_sound_volume(cobj(), source_id, volume);
   }
 
   /// Sets the head position from a matrix representation.
   /// For more information, see gvr_audio_set_head_pose().
   void SetHeadPose(const Mat4f& head_pose_matrix) {
-    gvr_audio_set_head_pose(context_, head_pose_matrix);
+    gvr_audio_set_head_pose(cobj(), head_pose_matrix);
   }
 
   /// Turns on/off the room reverberation effect.
   /// For more information, see gvr_audio_enable_room().
-  void EnableRoom(bool enable) { gvr_audio_enable_room(context_, enable); }
+  void EnableRoom(bool enable) { gvr_audio_enable_room(cobj(), enable); }
 
   /// Sets the room properties describing the dimensions and surface materials
   /// of a given room. For more information, see
@@ -849,7 +840,7 @@ class AudioApi {
                          gvr_audio_material_type wall_material,
                          gvr_audio_material_type ceiling_material,
                          gvr_audio_material_type floor_material) {
-    gvr_audio_set_room_properties(context_, size_x, size_y, size_z,
+    gvr_audio_set_room_properties(cobj(), size_x, size_y, size_z,
                                   wall_material, ceiling_material,
                                   floor_material);
   }
@@ -859,40 +850,15 @@ class AudioApi {
   /// information see gvr_audio_set_room_reverb_adjustments().
   void SetRoomReverbAdjustments(float gain, float time_adjust,
                                 float brightness_adjust) {
-    gvr_audio_set_room_reverb_adjustments(context_, gain, time_adjust,
+    gvr_audio_set_room_reverb_adjustments(cobj(), gain, time_adjust,
                                           brightness_adjust);
   }
 
   /// Enables the stereo speaker mode. For more information see
   /// gvr_audio_enable_stereo_speaker_mode().
   void EnableStereoSpeakerMode(bool enable) {
-    gvr_audio_enable_stereo_speaker_mode(context_, enable);
+    gvr_audio_enable_stereo_speaker_mode(cobj(), enable);
   }
-
-  /// @name Wrapper manipulation
-  /// @{
-  /// Creates a C++ wrapper for a C object and takes ownership.
-  explicit AudioApi(gvr_audio_context* context) : context_(context) {}
-
-  /// Returns the wrapped C object. Does not affect ownership.
-  gvr_audio_context* cobj() { return context_; }
-  const gvr_audio_context* cobj() const { return context_; }
-
-  /// Returns the wrapped C object and transfers its ownership to the caller.
-  /// The wrapper becomes invalid and should not be used.
-  gvr_audio_context* Release() {
-    auto result = context_;
-    context_ = nullptr;
-    return result;
-  }
-  /// @}
-
- private:
-  gvr_audio_context* context_;
-
-  // Disallow copy and assign:
-  AudioApi(const AudioApi&);
-  void operator=(const AudioApi&);
 };
 
 }  // namespace gvr

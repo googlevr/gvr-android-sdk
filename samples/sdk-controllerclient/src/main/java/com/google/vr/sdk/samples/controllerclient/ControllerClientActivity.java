@@ -33,7 +33,7 @@ import com.google.vr.sdk.controller.ControllerManager.ApiStatus;
  */
 public class ControllerClientActivity extends Activity {
 
-  private static final String TAG = "ControllerClientActivit";
+  private static final String TAG = ControllerClientActivity.class.getSimpleName();
 
   // These two objects are the primary APIs for interacting with the Daydream controller.
   private ControllerManager controllerManager;
