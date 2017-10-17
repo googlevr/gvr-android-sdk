@@ -21,6 +21,7 @@ import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView.Renderer;
 import android.opengl.Matrix;
+import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.ext.gvr.GvrAudioProcessor;
 import com.google.vr.ndk.base.BufferSpec;
 import com.google.vr.ndk.base.BufferViewport;
@@ -34,7 +35,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 /**
  * The main app renderer. Draws the scene the video is displayed in a color buffer, and signals to
- * the the GvrApi to render video from the ExternalSurface at the specified ID.
+ * the GvrApi to render video from the ExternalSurface at the specified ID.
  */
 public class VideoSceneRenderer implements Renderer {
 
@@ -58,6 +59,8 @@ public class VideoSceneRenderer implements Renderer {
   private GvrAudioProcessor gvrAudioProcessor;
   private SwapChain swapChain;
   private VideoScene videoScene;
+  private VideoExoPlayer2 videoPlayer;
+  private final Object videoPlayerLock = new Object();
   private volatile int videoSurfaceID = BufferViewport.EXTERNAL_SURFACE_ID_NONE;
   private volatile boolean shouldShowVideo = false;
 
@@ -71,6 +74,8 @@ public class VideoSceneRenderer implements Renderer {
   private final RectF eyeFov = new RectF();
   private final RectF eyeUv = new RectF();
   private final Point targetSize = new Point();
+  private boolean showVideoFrameRateBar = false;
+  private boolean useDrmVideoSample = true;
 
   VideoSceneRenderer(Context context, GvrApi api) {
     this.context = context;
@@ -91,14 +96,17 @@ public class VideoSceneRenderer implements Renderer {
     }
   }
 
-  /**
-   * Sets the {@link GvrAudioProcessor} that is rendering spatial audio. If non-{@code null}, its
-   * orientation will be updated when each frame is rendered.
-   *
-   * @param gvrAudioProcessor The {@link GvrAudioProcessor}. May be {@code null}.
-   */
-  public void setGvrAudioProcessor(GvrAudioProcessor gvrAudioProcessor) {
-    this.gvrAudioProcessor = gvrAudioProcessor;
+  /** Sets the video player which is decoding the video. It will be used to query decoder counters
+   * and access the GVR audio processor. */
+  public void setVideoPlayer(VideoExoPlayer2 player) {
+    synchronized (videoPlayerLock) {
+      this.videoPlayer = player;
+      if (player != null) {
+        this.gvrAudioProcessor = player.getGvrAudioProcessor();
+      } else {
+        this.gvrAudioProcessor = null;
+      }
+    }
   }
 
   /**
@@ -132,6 +140,13 @@ public class VideoSceneRenderer implements Renderer {
     if (videoScene != null) {
       videoScene.setVideoSurfaceId(id);
     }
+  }
+
+  /** Enable or disable a colored bar under the video indicating the fraction of its native frame
+   * rate achieved by the video decoder in the last few seconds. */
+  public void setVideoFrameRateBar(boolean enable, boolean isDrm) {
+    showVideoFrameRateBar = enable;
+    useDrmVideoSample = isDrm;
   }
 
   /**
@@ -189,6 +204,7 @@ public class VideoSceneRenderer implements Renderer {
   private void initVideoScene() {
     // Initialize the video scene. Draws the app's color buffer.
     videoScene = new VideoScene();
+    videoScene.setVideoFrameRateBar(showVideoFrameRateBar, useDrmVideoSample);
     videoScene.prepareGLResources(context);
     videoScene.setHasVideoPlaybackStarted(shouldShowVideo);
     videoScene.setVideoSurfaceId(videoSurfaceID);
@@ -241,13 +257,28 @@ public class VideoSceneRenderer implements Renderer {
   }
 
   private void drawScene(GL10 gl, Frame frame) {
-    // Draw the scene framebuffer.
+    // Before drawing the scene, update the average FPS achieved by the video decoder over the last
+    // three seconds. This will be used to set the size and color of the frame rate bar under the
+    // video.
+    synchronized (videoPlayerLock) {
+      if (videoPlayer != null) {
+        float nativeFrameRate = 100.f;
+        Format videoFormat = videoPlayer.getPlayer().getVideoFormat();
+        if (videoFormat != null) {
+          nativeFrameRate = videoFormat.frameRate;
+        }
+        videoScene.updateVideoFpsFraction(
+            3L, nativeFrameRate, videoPlayer.getPlayer().getVideoDecoderCounters());
+      }
+    }
+    // Draw the scene framebuffer consisting of a solid gray background, a static texture if the
+    // video hasn't started playing yet, and a bar showing the fraction of the video's native frame
+    // rate achieved by the video decoder. If everything works correctly, the bar should always be
+    // green.
     frame.bindBuffer(INDEX_SCENE_BUFFER);
-    // Draw background color
     GLES20.glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
     GLES20.glDisable(GLES20.GL_DEPTH_TEST);
-
     GLUtil.checkGlError(TAG, "new frame");
 
     for (int eye = 0; eye < 2; ++eye) {

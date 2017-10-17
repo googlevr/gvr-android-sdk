@@ -7,9 +7,14 @@ import android.util.Log;
 import android.view.Surface;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
+import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
+import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.audio.AudioProcessor;
+import com.google.android.exoplayer2.decoder.DecoderCounters;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
@@ -20,6 +25,7 @@ import com.google.android.exoplayer2.ext.gvr.GvrAudioProcessor;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
+import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
 import com.google.android.exoplayer2.source.dash.DefaultDashChunkSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
@@ -28,13 +34,13 @@ import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
 import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelection;
+import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -42,7 +48,7 @@ import java.util.UUID;
  * provides access to simple video playback controls. Plays unprotected videos from a specified Uri,
  * and plays DRM video under the Widevine test license.
  */
-public class VideoExoPlayer2 {
+public class VideoExoPlayer2 implements Player.EventListener {
 
   private static final String TAG = VideoExoPlayer2.class.getSimpleName();
   private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
@@ -125,8 +131,7 @@ public class VideoExoPlayer2 {
         drmSessionManager =
             buildDrmSessionManager(
                 C.WIDEVINE_UUID,
-                getWidevineTestLicenseUrl(optionalDrmVideoId),
-                null /* keyRequestProperties */);
+                getWidevineTestLicenseUrl(optionalDrmVideoId));
       } catch (UnsupportedDrmException e) {
         String errorString =
             e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
@@ -145,6 +150,7 @@ public class VideoExoPlayer2 {
     player = ExoPlayerFactory.newSimpleInstance(
         new GvrRenderersFactory(context, drmSessionManager, gvrAudioProcessor),
         trackSelector);
+    player.addListener(this);
 
     // Auto play the video.
     player.setPlayWhenReady(true);
@@ -195,14 +201,12 @@ public class VideoExoPlayer2 {
   }
 
   private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(
-      UUID uuid, String licenseUrl, Map<String, String> keyRequestProperties)
-      throws UnsupportedDrmException {
+      UUID uuid, String licenseUrl) throws UnsupportedDrmException {
     if (Util.SDK_INT < 18) {
       return null;
     }
     HttpMediaDrmCallback drmCallback =
-        new HttpMediaDrmCallback(
-            licenseUrl, buildHttpDataSourceFactory(false), keyRequestProperties);
+        new HttpMediaDrmCallback(licenseUrl, buildHttpDataSourceFactory(false));
     return new DefaultDrmSessionManager<>(
         uuid, FrameworkMediaDrm.newInstance(uuid), drmCallback, null, null, null);
   }
@@ -263,4 +267,30 @@ public class VideoExoPlayer2 {
 
   }
 
+  @Override
+  public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+    if (playbackState == Player.STATE_ENDED) {
+      DecoderCounters counters = player.getVideoDecoderCounters();
+      counters.ensureUpdated();
+      Log.i(TAG, "Total video frames decoded: " + counters.renderedOutputBufferCount);
+    }
+  }
+
+  @Override
+  public void onLoadingChanged(boolean isLoading) {}
+  @Override
+  public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {}
+  @Override
+  public void onPlayerError(ExoPlaybackException error) {}
+  @Override
+  public void onPositionDiscontinuity() {}
+  @Override
+  public void onRepeatModeChanged(int repeatMode) {}
+  // Uncomment when this is part of a stable ExoPlayer release.
+  // @Override
+  public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {}
+  @Override
+  public void onTimelineChanged(Timeline timeline, Object manifest) {}
+  @Override
+  public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {}
 }

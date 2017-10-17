@@ -50,19 +50,29 @@ public class WatchVideoActivity extends Activity {
   private static final String TAG = WatchVideoActivity.class.getSimpleName();
   private static final String LOCAL_PREFERENCE_FILE = "videoplayerPrefs";
   private static final String USE_DRM_VIDEO_SAMPLE = "use_drm_video_sample";
+  private static final String SHOW_FRAME_RATE_BAR = "show_frame_rate_bar";
 
   private GvrLayout gvrLayout;
   private GLSurfaceView surfaceView;
   private VideoSceneRenderer renderer;
   private VideoExoPlayer2 videoPlayer;
+  // When true, a DRM-protected sample is played back in a protected compositor GL context. When
+  // false, a cleartext sample is played in a normal context.
+  private boolean useDrmVideoSample = true;
+  // Controls whether a colored bar showing the average video frame rate over the last few seconds
+  // is shown under the video.
+  private boolean showFrameRateBar = false;
   private boolean hasFirstFrame;
 
   // Transform a quad that fills the clip box at Z=0 to a 16:9 screen at Z=-4. Note that the matrix
-  // is column-major, so the translation is on the last line in this representation.
-  private final float[] videoTransform = { 1.6f, 0.0f, 0.0f, 0.0f,
-                                           0.0f, 0.9f, 0.0f, 0.0f,
-                                           0.0f, 0.0f, 1.0f, 0.0f,
-                                           0.0f, 0.0f, -4.f, 1.0f };
+  // is column-major, so the translation is on the last row rather than the last column in this
+  // representation.
+  private final float[] videoTransform = {
+    1.6f, 0.0f, 0.0f, 0.0f,
+    0.0f, 0.9f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, -4.f, 1.0f
+  };
 
   // Runnable to refresh the viewer profile when gvrLayout is resumed.
   // This is done on the GL thread because refreshViewerProfile isn't thread-safe.
@@ -89,13 +99,20 @@ public class WatchVideoActivity extends Activity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    // Use extra intent arguments to dynamically disable/enable DRM.
+    // Use extra intent arguments to dynamically disable/enable DRM and the frame rate bar.
+    // The intents are "sticky", i.e., they affect all future launches of the app until a different
+    // intent is passed or the package data is cleared.
+    readPreferences();
     Bundle intentParams = getIntent().getExtras();
-    if (intentParams != null && intentParams.containsKey(USE_DRM_VIDEO_SAMPLE)) {
-      boolean enableDrm = intentParams.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
-      Log.i(TAG, (enableDrm ? "Enable" : "Disable") + " DRM video per extra intent data.");
-      setUseDrmVideoPreference(enableDrm);
+    if (intentParams != null) {
+      if (intentParams.containsKey(USE_DRM_VIDEO_SAMPLE)) {
+        useDrmVideoSample = intentParams.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
+      }
+      if (intentParams.containsKey(SHOW_FRAME_RATE_BAR)) {
+        showFrameRateBar = intentParams.getBoolean(SHOW_FRAME_RATE_BAR, false);
+      }
     }
+    storePreferences();
 
     setImmersiveSticky();
     getWindow()
@@ -120,6 +137,7 @@ public class WatchVideoActivity extends Activity {
     gvrLayout.setPresentationView(surfaceView);
     gvrLayout.setKeepScreenOn(true);
     renderer = new VideoSceneRenderer(this, gvrLayout.getGvrApi());
+    renderer.setVideoFrameRateBar(showFrameRateBar, useDrmVideoSample);
 
     // Initialize the ExternalSurfaceListener to receive video Surface callbacks.
     hasFirstFrame = false;
@@ -164,7 +182,7 @@ public class WatchVideoActivity extends Activity {
             videoSurfaceListener,
             new Handler(Looper.getMainLooper()),
             /* Whether video playback should use a protected reprojection pipeline. */
-            isDrmVideoSample());
+            useDrmVideoSample);
 
     if (!isAsyncReprojectionEnabled) {
       // The device does not support this API, video will not play.
@@ -205,18 +223,20 @@ public class WatchVideoActivity extends Activity {
     Uri streamUri;
     String drmVideoId = null;
 
-    if (isDrmVideoSample()) {
+    if (useDrmVideoSample) {
       // Protected video, requires a secure path for playback.
+      Log.i(TAG, "Using DRM-protected video sample.");
       streamUri = Uri.parse("https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd");
       drmVideoId = "0894c7c8719b28a0";
     } else {
       // Unprotected video, does not require a secure path for playback.
+      Log.i(TAG, "Using cleartext video sample.");
       streamUri = Uri.parse("https://storage.googleapis.com/wvmedia/clear/h264/tears/tears.mpd");
     }
 
     try {
       videoPlayer.initPlayer(streamUri, drmVideoId);
-      renderer.setGvrAudioProcessor(videoPlayer.getGvrAudioProcessor());
+      renderer.setVideoPlayer(videoPlayer);
     } catch (UnsupportedDrmException e) {
       Log.e(TAG, "Error initializing video player", e);
     }
@@ -265,7 +285,7 @@ public class WatchVideoActivity extends Activity {
   @Override
   protected void onStop() {
     if (videoPlayer != null) {
-      renderer.setGvrAudioProcessor(null);
+      renderer.setVideoPlayer(null);
       videoPlayer.releasePlayer();
       videoPlayer = null;
     }
@@ -320,21 +340,19 @@ public class WatchVideoActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
   }
 
-  /**
-   * Use the below flag to test different use cases. With the flag set to false, the movie should
-   * play on any device. With the flag set to true, the movie will play only on phones that support
-   * EGL_EXT_protected_content.
-   */
-  public void setUseDrmVideoPreference(boolean useProtectVideo) {
+  private void readPreferences() {
     SharedPreferences pref =
         this.getSharedPreferences(LOCAL_PREFERENCE_FILE, Context.MODE_PRIVATE);
-    pref.edit().putBoolean(USE_DRM_VIDEO_SAMPLE, useProtectVideo).commit();
+    useDrmVideoSample = pref.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
+    showFrameRateBar = pref.getBoolean(SHOW_FRAME_RATE_BAR, false);
   }
 
-  protected boolean isDrmVideoSample() {
-    SharedPreferences pref =
-        this.getSharedPreferences(LOCAL_PREFERENCE_FILE, Context.MODE_PRIVATE);
-    return pref.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
+  private void storePreferences() {
+    SharedPreferences.Editor pref =
+        this.getSharedPreferences(LOCAL_PREFERENCE_FILE, Context.MODE_PRIVATE).edit();
+    pref.putBoolean(USE_DRM_VIDEO_SAMPLE, useDrmVideoSample)
+        .putBoolean(SHOW_FRAME_RATE_BAR, showFrameRateBar)
+        .commit();
   }
 
   /**

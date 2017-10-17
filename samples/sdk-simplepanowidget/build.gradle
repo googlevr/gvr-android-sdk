@@ -37,5 +37,5 @@ model {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-panowidget:1.80.0'
+    compile 'com.google.vr:sdk-panowidget:1.100.0'
 }

@@ -8,6 +8,11 @@
     native <methods>;
 }
 
+# The SDK configuration class member names are useful for debugging client logs.
+-keepclasseswithmembernames,allowoptimization class com.google.common.logging.nano.Vr$VREvent$SdkConfigurationParams** {
+    *;
+}
+
 -keep class com.google.vr.cardboard.UsedByNative
 -keep @com.google.vr.cardboard.UsedByNative class *
 -keepclassmembers class * {
@@ -25,3 +30,5 @@
 -keepclassmembers class * {
     @com.google.vr.cardboard.annotations.UsedByReflection *;
 }
+
+-dontwarn com.google.protobuf.nano.NanoEnumValue

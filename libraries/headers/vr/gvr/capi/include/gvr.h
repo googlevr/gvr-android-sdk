@@ -653,7 +653,9 @@ int32_t gvr_buffer_spec_get_samples(const gvr_buffer_spec* spec);
 void gvr_buffer_spec_set_samples(gvr_buffer_spec* spec, int32_t num_samples);
 
 /// Sets the color format for the buffer to be created. Default format is
-/// GVR_COLOR_FORMAT_RGBA_8888.
+/// GVR_COLOR_FORMAT_RGBA_8888. For all alpha-containing formats, the pixels
+/// are expected to be premultiplied with alpha. In other words, the 60% opaque
+/// primary green color is (0.0, 0.6, 0.0, 0.6).
 ///
 /// @param spec Buffer specification.
 /// @param color_format The color format for the buffer. Valid formats are in
@@ -715,7 +717,7 @@ int32_t gvr_swap_chain_get_buffer_count(const gvr_swap_chain* swap_chain);
 /// @param index Index of the pixel buffer.
 /// @return Size of the specified pixel buffer in frames that will be returned
 ///     from gvr_swap_chain_acquire_frame().
-gvr_sizei gvr_swap_chain_get_buffer_size(gvr_swap_chain* swap_chain,
+gvr_sizei gvr_swap_chain_get_buffer_size(const gvr_swap_chain* swap_chain,
                                          int32_t index);
 
 /// Resizes the specified pixel buffer to the given size. The frames are resized
@@ -1297,9 +1299,7 @@ class SwapChain : public WrapperBase<gvr_swap_chain, gvr_swap_chain_destroy> {
 
   /// For more information, see gvr_swap_chain_get_buffer_size().
   Sizei GetBufferSize(int32_t index) const {
-    /// TODO(b/62070848): Fix parameter constness on this function
-    return gvr_swap_chain_get_buffer_size(const_cast<gvr_swap_chain*>(cobj()),
-                                          index);
+    return gvr_swap_chain_get_buffer_size(cobj(), index);
   }
 
   /// For more information, see gvr_swap_chain_resize_buffer().
@@ -1554,12 +1554,14 @@ class GvrApi {
   /// @{
 
   /// For more information see gvr_get_head_space_from_start_space_rotation.
-  Mat4f GetHeadSpaceFromStartSpaceRotation(const ClockTimePoint& time_point) {
+  Mat4f GetHeadSpaceFromStartSpaceRotation(
+      const ClockTimePoint& time_point) const {
     return gvr_get_head_space_from_start_space_rotation(context_, time_point);
   }
 
   /// For more information see gvr_get_head_space_from_start_space_transform.
-  Mat4f GetHeadSpaceFromStartSpaceTransform(const ClockTimePoint& time_point) {
+  Mat4f GetHeadSpaceFromStartSpaceTransform(
+      const ClockTimePoint& time_point) const {
     return gvr_get_head_space_from_start_space_transform(context_, time_point);
   }
 

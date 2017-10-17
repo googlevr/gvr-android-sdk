@@ -64,7 +64,7 @@ void gvr_audio_surround_destroy(gvr_audio_surround_context** api);
 /// @param api Pointer to a gvr_audio_surround_context.
 /// @return Number of available samples in input buffer.
 int64_t gvr_audio_surround_get_available_input_size_samples(
-    gvr_audio_surround_context* api);
+    const gvr_audio_surround_context* api);
 
 /// Adds interleaved audio data to the renderer. If enough data has been
 /// provided for an output buffer to be generated then it will be immediately
@@ -87,7 +87,7 @@ int64_t gvr_audio_surround_add_interleaved_input(
 /// @param api Pointer to a gvr_audio_surround_context.
 /// @return Number of available samples in output buffer.
 int64_t gvr_audio_surround_get_available_output_size_samples(
-    gvr_audio_surround_context* api);
+    const gvr_audio_surround_context* api);
 
 /// Gets a processed output buffer in interleaved format.
 ///
@@ -172,9 +172,7 @@ class AudioSurroundApi
   /// For more information, see
   /// gvr_audio_surround_get_available_input_size_samples().
   int64_t GetAvailableInputSizeSamples() const {
-    // TODO(b/62070848): Fix parameter constness of this function
-    return gvr_audio_surround_get_available_input_size_samples(
-        const_cast<gvr_audio_surround_context*>(cobj()));
+    return gvr_audio_surround_get_available_input_size_samples(cobj());
   }
 
   /// Adds interleaved audio data to the renderer.
@@ -190,9 +188,7 @@ class AudioSurroundApi
   /// For more information, see
   /// gvr_audio_surround_get_available_output_size_samples().
   int64_t GetAvailableOutputSizeSamples() const {
-    // TODO(b/62070848): Fix parameter constness of this function
-    return gvr_audio_surround_get_available_output_size_samples(
-        const_cast<gvr_audio_surround_context*>(cobj()));
+    return gvr_audio_surround_get_available_output_size_samples(cobj());
   }
 
   /// Gets a processed output buffer in interleaved format.

@@ -107,7 +107,7 @@ class TreasureHuntRenderer {
    * Draws the reticle. The reticle is positioned using viewport parameters,
    * so no data about its eye-space position is needed here.
    */
-  void DrawCardboardReticle();
+  void DrawReticle();
 
   /**
    * Draw the cube.
@@ -131,16 +131,6 @@ class TreasureHuntRenderer {
   void DrawFloor(ViewType view);
 
   /**
-   * Draws the cursor.
-   *
-   * We've set all of our transformation matrices. Now we simply pass them
-   * into the shader.
-   *
-   * @param view Specifies which eye we are rendering: left, right, or both.
-   */
-  void DrawDaydreamCursor(ViewType view);
-
-  /**
    * Find a new random position for the object.
    *
    * We'll rotate it around the Y-axis so it's out of sight, and then up or
@@ -149,29 +139,20 @@ class TreasureHuntRenderer {
   void HideObject();
 
   /**
-   * Check if user is looking at object by calculating where the object is
-   * in eye-space.
-   *
-   * @return true if the user is looking at the object.
+   * Update the position of the reticle based on controller data.
+   * In Cardboard mode, this function simply sets the position to the center
+   * of the view.
    */
-  bool IsLookingAtObject();
+  void UpdateReticlePosition();
 
   /**
-   * Check if user is pointing at object by calculating where the object is
-   * in eye-space.
+   * Check if user is pointing or looking at the object by calculating whether
+   * the angle between the user's gaze or controller orientation and the vector
+   * pointing towards the object is lower than some threshold.
    *
    * @return true if the user is pointing at the object.
    */
   bool IsPointingAtObject();
-
-  /**
-   * Check if the object has been found. If the viewer is CARDBOARD, it checks
-   * whether the user is looking at the object. If the viewer is DAYDREAM, it
-   * checks whether the user is pointing at the object with a controller.
-   *
-   * @return true if the object is found.
-   */
-  bool ObjectIsFound();
 
   /**
    * Preloads the cube sound sample and starts the spatialized playback at the
@@ -250,7 +231,7 @@ class TreasureHuntRenderer {
   gvr::Mat4f view_;
   gvr::Mat4f model_floor_;
   gvr::Mat4f model_reticle_;
-  gvr::Mat4f model_cursor_;
+  gvr::Mat4f modelview_reticle_;
   gvr::Sizei render_size_;
 
   // View-dependent values.  These are stored in length two arrays to allow
@@ -260,7 +241,6 @@ class TreasureHuntRenderer {
   std::array<float, 3> light_pos_eye_space_[2];
   gvr::Mat4f modelview_projection_cube_[2];
   gvr::Mat4f modelview_projection_floor_[2];
-  gvr::Mat4f modelview_projection_cursor_[2];
   gvr::Mat4f modelview_cube_[2];
   gvr::Mat4f modelview_floor_[2];
 

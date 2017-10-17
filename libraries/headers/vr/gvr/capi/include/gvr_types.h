@@ -221,11 +221,18 @@ typedef struct gvr_value {
 
 /// The type of a recentering associated with a GVR_EVENT_RECENTER event.
 typedef enum {
-  /// A recenter event triggered by headset removal and re-attachment.
+  /// Recentering state received from the platform upon starting or resuming the
+  /// application. This event is usually preceded in the same frame by a
+  /// GVR_EVENT_HEAD_TRACKING_RESUMED event.
   GVR_RECENTER_EVENT_RESTART = 1,
 
-  /// A recenter event triggered by the controller.
+  /// A recenter event triggered by the controller (e.g. long-press on Home
+  /// button or connecting controller as part of donning UX).
   GVR_RECENTER_EVENT_ALIGNED = 2,
+
+  /// A recenter event triggered by proximity sensor detecting the user has put
+  /// put the headset on (a.k.a. donned the headset).
+  GVR_RECENTER_EVENT_DON = 3,
 } gvr_recenter_event_type;
 
 /// @}
@@ -233,7 +240,7 @@ typedef enum {
 /// Event data associated with a system-initiated GVR_EVENT_RECENTER event. The
 /// client may wish to handle this event to provide custom recentering logic.
 typedef struct gvr_recenter_event_data {
-  gvr_recenter_event_type recenter_type;
+  int32_t recenter_type;  // gvr_recenter_event_type
   gvr_flags recenter_event_flags;
   gvr_mat4f start_space_from_tracking_space_transform;
 } gvr_recenter_event_data;
@@ -268,6 +275,19 @@ typedef enum {
   /// See also gvr_properties_get().
   GVR_ERROR_NO_PROPERTY_AVAILABLE = 1000001,
 } gvr_error;
+
+/// Flags indicating the current status of the tracker.
+/// See also GVR_PROPERTY_TRACKING_STATUS.
+enum {
+  /// The tracker is in an invalid (potentially paused) state, or no valid
+  /// tracker exists.
+  GVR_TRACKING_STATUS_FLAG_INVALID = (1U << 0),
+  /// The tracker is still initializing, so the pose may not be accurate.
+  GVR_TRACKING_STATUS_FLAG_INITIALIZING = (1U << 1),
+  /// The tracker pose is derived from 6DoF sensors and has a translational
+  /// component.
+  GVR_TRACKING_STATUS_FLAG_HAS_6DOF = (1U << 2),
+};
 
 /// Controller API options (bit flags).
 enum {
@@ -499,9 +519,10 @@ typedef enum {
 
 /// Valid color formats for swap chain buffers.
 typedef enum {
-  /// Equivalent to GL_RGBA8
+  /// Equivalent to GL_RGBA8. Pixel values are expected to be premultiplied
+  /// with alpha.
   GVR_COLOR_FORMAT_RGBA_8888 = 0,
-  /// Equivalent to GL_RGB565
+  /// Equivalent to GL_RGB565.
   GVR_COLOR_FORMAT_RGB_565 = 1,
 } gvr_color_format_type;
 
@@ -583,15 +604,23 @@ typedef enum {
   /// Type: int (gvr_safety_region_type)
   GVR_PROPERTY_SAFETY_REGION = 3,
 
-  /// Inner radius for the safety cylinder region, outside of which a safety fog
-  /// effect will begin to be applied.
+  /// Distance from safety cylinder axis at which the user's state transitions
+  /// from outside to inside, generating a GVR_EVENT_SAFETY_REGION_ENTER event.
+  /// This value is guaranteed to be less than
+  /// GVR_PROPERTY_SAFETY_CYLINDER_EXIT_RADIUS.
   /// Type: float
-  GVR_PROPERTY_SAFETY_CYLINDER_INNER_RADIUS = 4,
+  GVR_PROPERTY_SAFETY_CYLINDER_ENTER_RADIUS = 4,
 
-  /// Outer radius for the safety cylinder region, outside of which a safety fog
-  /// effect is fully applied.
+  /// Distance from safety cylinder axis at which the user's state transitions
+  /// from inside to outside, generating a GVR_EVENT_SAFETY_REGION_EXIT event.
+  /// This value is guaranteed to be greater than
+  /// GVR_PROPERTY_SAFETY_CYLINDER_ENTER_RADIUS.
   /// Type: float
-  GVR_PROPERTY_SAFETY_CYLINDER_OUTER_RADIUS = 5,
+  GVR_PROPERTY_SAFETY_CYLINDER_EXIT_RADIUS = 5,
+
+  /// The current status of the head tracker, if available.
+  /// Type: gvr_flags
+  GVR_PROPERTY_TRACKING_STATUS = 6
 } gvr_property_type;
 
 // Safety region types exposed from the GVR_PROPERTY_SAFETY_REGION property.
@@ -638,6 +667,17 @@ typedef enum {
   /// the gvr_safety_region_type.
   /// Event data type: none
   GVR_EVENT_SAFETY_REGION_ENTER = 3,
+
+  /// Notification that head tracking was resumed (or started for the first
+  /// time). Before this event is sent, head tracking will always return the
+  /// identity pose. This event is usually followed in the same frame by a
+  /// GVR_EVENT_RECENTER of recenter_type GVR_RECENTER_EVENT_RESTART.
+  /// Event data type: none
+  GVR_EVENT_HEAD_TRACKING_RESUMED = 4,
+
+  /// Notification that head tracking was paused.
+  /// Event data type: none
+  GVR_EVENT_HEAD_TRACKING_PAUSED = 5,
 } gvr_event_type;
 
 /// @}
@@ -784,6 +824,12 @@ const ControllerBatteryLevel kControllerBatteryLevelAlmostFull =
 const ControllerBatteryLevel kControllerBatteryLevelFull =
     static_cast<ControllerBatteryLevel>(
         GVR_CONTROLLER_BATTERY_LEVEL_FULL);
+
+enum {
+  kTrackingStatusFlagInvalid = GVR_TRACKING_STATUS_FLAG_INVALID,
+  kTrackingStatusFlagInitializing = GVR_TRACKING_STATUS_FLAG_INITIALIZING,
+  kTrackingStatusFlagHas6Dof = GVR_TRACKING_STATUS_FLAG_HAS_6DOF
+};
 
 /// An uninitialized external surface ID.
 const int32_t kUninitializedExternalSurface = GVR_BUFFER_INDEX_EXTERNAL_SURFACE;

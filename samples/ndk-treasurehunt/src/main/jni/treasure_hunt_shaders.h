@@ -83,11 +83,11 @@ static const char* kGridFragmentShaders[] = {
 
     void main() {
       float depth = gl_FragCoord.z / gl_FragCoord.w;
-      if ((mod(abs(v_Grid.x), 10.0) < 0.1) ||
-          (mod(abs(v_Grid.z), 10.0) < 0.1)) {
-        gl_FragColor = max(0.0, (90.0-depth) / 90.0) *
+      if ((mod(abs(v_Grid.x), 1.0) < 0.01) ||
+          (mod(abs(v_Grid.z), 1.0) < 0.01)) {
+        gl_FragColor = max(0.0, (9.0-depth) / 9.0) *
                        vec4(1.0, 1.0, 1.0, 1.0) +
-                       min(1.0, depth / 90.0) * v_Color;
+                       min(1.0, depth / 9.0) * v_Color;
       } else {
         gl_FragColor = v_Color;
       }
@@ -102,11 +102,11 @@ static const char* kGridFragmentShaders[] = {
 
     void main() {
       float depth = gl_FragCoord.z / gl_FragCoord.w;
-      if ((mod(abs(v_Grid.x), 10.0) < 0.1) ||
-          (mod(abs(v_Grid.z), 10.0) < 0.1)) {
-        FragColor = max(0.0, (90.0-depth) / 90.0) *
+      if ((mod(abs(v_Grid.x), 1.0) < 0.01) ||
+          (mod(abs(v_Grid.z), 1.0) < 0.01)) {
+        FragColor = max(0.0, (9.0-depth) / 9.0) *
                        vec4(1.0, 1.0, 1.0, 1.0) +
-                       min(1.0, depth / 90.0) * v_Color;
+                       min(1.0, depth / 9.0) * v_Color;
       } else {
         FragColor = v_Color;
       }

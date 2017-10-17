@@ -19,10 +19,15 @@ import android.content.Context;
 import android.graphics.RectF;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
+import com.google.android.exoplayer2.decoder.DecoderCounters;
 import com.google.vr.ndk.base.BufferViewport;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles positioning the video in the correct place in the scene and rendering a transparent hole
@@ -41,9 +46,24 @@ public class VideoScene {
   private final float[] perspectiveFromQuad = new float[16];
   // Transform from SPRITE_VERTICES_DATA space to world space. Set by setVideoTransform().
   private final float[] worldFromQuad = new float[16];
+  // Transform from double-sided unit box with the video to the position of the frame rate bar.
+  // Note that this is effectively just the offset and scale of the bar with respect to the video,
+  // not its world position.
+  private final float[] frameRateBarFromQuad = {
+    1.f, 0.f, 0.f, 0.f,
+    0.f, 0.1f, 0.f, 0.f,
+    0.f, 0.f, 1.f, 0.f,
+    0.f, -1.2f, 0.f, 1.f
+  };
+  // Transform from SPRITE_VERTICES_DATA space to world space for the framerate bar under the video.
+  private final float[] worldFromFrameRateBar = new float[16];
 
+  private final TreeMap<Long, Integer> frameCounts = new TreeMap<Long, Integer>();
   private volatile int videoSurfaceID = BufferViewport.EXTERNAL_SURFACE_ID_NONE;
   private volatile boolean isVideoPlaying = false;
+  private float currentFpsFraction = 0.f;
+  private boolean showVideoFrameRateBar = false;
+  private boolean useDrmVideoSample = true;
 
   /**
    * Sets whether video playback has started. If video playback has not started, the loading splash
@@ -74,6 +94,13 @@ public class VideoScene {
     System.arraycopy(newWorldFromQuad, 0, this.worldFromQuad, 0, 16);
   }
 
+  /** Enable or disable a colored bar under the video indicating the fraction of its native frame
+   * rate achieved by the video decoder in the last few seconds. */
+  public void setVideoFrameRateBar(boolean enable, boolean isDrm) {
+    showVideoFrameRateBar = enable;
+    useDrmVideoSample = isDrm;
+  }
+
   /**
    * Update a viewport so that it positions the video in the correct place in the scene seen by the
    * user and references the correct external surface. Can be safely called from a different thread
@@ -100,7 +127,7 @@ public class VideoScene {
     Matrix.multiplyMM(perspectiveFromQuad, 0, perspectiveFromWorld, 0, worldFromQuad, 0);
     int program;
     if (isVideoPlaying) {
-      program = resources.videoHoleProgram;
+      program = resources.solidColorProgram;
     } else {
       program = resources.spriteProgram;
     }
@@ -118,16 +145,19 @@ public class VideoScene {
         throw new RuntimeException("Could not get uniform location for uImageTexture");
       }
       GLES20.glUniform1i(uImageTexture, 0);
+    } else {
+      final int uColor = GLES20.glGetUniformLocation(program, "uColor");
+      GLES20.glUniform4f(uColor, 0.f, 0.f, 0.f, 0.f);
     }
 
-    final int positionAtribute = GLES20.glGetAttribLocation(program, "aPosition");
+    final int positionAttribute = GLES20.glGetAttribLocation(program, "aPosition");
     GLUtil.checkGlError(TAG, "glGetAttribLocation aPosition");
 
     GLES20.glVertexAttribPointer(
-        positionAtribute, 3, GLES20.GL_FLOAT, false, Resources.VERTEX_DATA_STRIDE_BYTES,
+        positionAttribute, 3, GLES20.GL_FLOAT, false, Resources.VERTEX_DATA_STRIDE_BYTES,
         resources.vertexPositions);
     GLUtil.checkGlError(TAG, "glVertexAttribPointer position");
-    GLES20.glEnableVertexAttribArray(positionAtribute);
+    GLES20.glEnableVertexAttribArray(positionAttribute);
     GLUtil.checkGlError(TAG, "glEnableVertexAttribArray position handle");
 
     final int uvAttribute = GLES20.glGetAttribLocation(program, "aTextureCoord");
@@ -150,12 +180,95 @@ public class VideoScene {
 
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, Resources.NUM_VERTICES);
 
-    GLES20.glDisableVertexAttribArray(positionAtribute);
+    GLES20.glDisableVertexAttribArray(positionAttribute);
     if (uvAttribute >= 0) {
       GLES20.glDisableVertexAttribArray(uvAttribute);
     }
-
     GLUtil.checkGlError(TAG, "glDrawArrays");
+
+    if (showVideoFrameRateBar) {
+      drawVideoFrameRateBar(perspectiveFromWorld);
+    }
+  }
+
+  private void drawVideoFrameRateBar(float[] perspectiveFromWorld) {
+    // When the frame rate is 90% or less of native, we interpret this as a "bad" state.
+    float colorFpsFraction = Math.max(0.f, (currentFpsFraction - 0.9f) / 0.1f);
+
+    // Adjust the size of the bar and offset it to align its left end with the left edge of the
+    // video quad.
+    frameRateBarFromQuad[0] = currentFpsFraction;
+    frameRateBarFromQuad[12] = -1.f + currentFpsFraction;
+    Matrix.multiplyMM(worldFromFrameRateBar, 0, worldFromQuad, 0, frameRateBarFromQuad, 0);
+    Matrix.multiplyMM(perspectiveFromQuad, 0, perspectiveFromWorld, 0, worldFromFrameRateBar, 0);
+
+    GLES20.glUseProgram(resources.solidColorProgram);
+    final int uColor = GLES20.glGetUniformLocation(resources.solidColorProgram, "uColor");
+    // Fade between red and 80% gray when the video is DRM-protected. Fade between red and yellow
+    // when the video is not protected.
+    if (useDrmVideoSample) {
+      GLES20.glUniform4f(uColor, 1.f - 0.2f * colorFpsFraction, 0.8f * colorFpsFraction,
+          0.8f * colorFpsFraction, 1.f);
+    } else {
+      GLES20.glUniform4f(uColor, 0.5f + 0.5f * colorFpsFraction, colorFpsFraction, 0.f, 1.f);
+    }
+    final int positionAttribute =
+        GLES20.glGetAttribLocation(resources.solidColorProgram, "aPosition");
+    GLES20.glVertexAttribPointer(
+        positionAttribute, 3, GLES20.GL_FLOAT, false, Resources.VERTEX_DATA_STRIDE_BYTES,
+        resources.vertexPositions);
+    GLES20.glEnableVertexAttribArray(positionAttribute);
+    final int uMVPMatrix = GLES20.glGetUniformLocation(resources.solidColorProgram, "uMVPMatrix");
+    GLES20.glUniformMatrix4fv(uMVPMatrix, 1, false, perspectiveFromQuad, 0);
+    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, Resources.NUM_VERTICES);
+    GLES20.glDisableVertexAttribArray(positionAttribute);
+    GLUtil.checkGlError(TAG, "frame rate bar");
+  }
+
+  /**
+   * Updates the average fraction of the native frame rate of the video achieved over the last N
+   * seconds, based on the passed DecoderCounters object.
+   *
+   * @param averagingPeriodInSeconds Compute the average over this many seconds in the past.
+   * @param frameRate Native frame rate of the video.
+   * @param counters DecoderCounters object retrieved from the video decoder.
+   */
+  public void updateVideoFpsFraction(
+      long averagingPeriodInSeconds, float nativeFrameRate, DecoderCounters counters) {
+    if (!showVideoFrameRateBar || counters == null) {
+      currentFpsFraction = 0.f;
+      return;
+    }
+    // Compute the frame rate over the last N seconds.
+    final long nowTime = System.nanoTime();
+    final long cutoffTime = nowTime - TimeUnit.SECONDS.toNanos(averagingPeriodInSeconds);
+    long pastTime = 0L;
+    counters.ensureUpdated();
+    final int currentBufferCount = counters.renderedOutputBufferCount;
+    int pastBufferCount = 0;
+
+    // Insert the current buffer count into the map for future computations.
+    frameCounts.put(Long.valueOf(nowTime), Integer.valueOf(currentBufferCount));
+
+    // Loop over the map, pruning outdated entries and stopping at the first one that is within the
+    // cutoff time.
+    for (Iterator<Map.Entry<Long, Integer>> iterator = frameCounts.entrySet().iterator();
+        iterator.hasNext(); ) {
+      Map.Entry<Long, Integer> count = iterator.next();
+      if (count.getKey().longValue() < cutoffTime) {
+        iterator.remove();
+      } else {
+        pastTime = count.getKey().longValue();
+        pastBufferCount = count.getValue().intValue();
+        break;
+      }
+    }
+
+    // Compute the average fraction of the frame rate and clamp it to [0, 1].
+    float elapsedSeconds = ((float) (nowTime - pastTime)) / 1e9f;
+    float rawFraction =
+        ((float) (currentBufferCount - pastBufferCount)) / (elapsedSeconds * nativeFrameRate);
+    currentFpsFraction = Math.min(1.0f, Math.max(0.f, rawFraction));
   }
 
   /**
@@ -193,14 +306,15 @@ public class VideoScene {
             + "void main() {\n"
             + "  gl_FragColor = texture2D(uImageTexture, vTextureCoord);\n"
             + "}\n";
-  
-    static final String VIDEO_HOLE_FRAGMENT_SHADER =
+
+    static final String SOLID_COLOR_FRAGMENT_SHADER =
         "precision mediump float;\n"
+            + "uniform vec4 uColor;\n"
             + "varying vec2 vTextureCoord;\n"
             + "void main() {\n"
-            + "  gl_FragColor = vec4(0., 0., 0., 0.);\n"
+            + "  gl_FragColor = uColor;\n"
             + "}\n";
-  
+
     static final float[] VERTEX_DATA = {
       // X,   Y,    Z,    U, V
       -1.0f,  1.0f, 0.0f, 1, 1,
@@ -214,8 +328,8 @@ public class VideoScene {
     static final int VERTEX_DATA_STRIDE_BYTES = 5 * FLOAT_SIZE_BYTES;
     static final int VERTEX_DATA_POS_OFFSET = 0;
     static final int VERTEX_DATA_UV_OFFSET = 3;
-  
-    int videoHoleProgram = 0;
+
+    int solidColorProgram = 0;
     int spriteProgram = 0;
     int loadingTextureId = 0;
     FloatBuffer vertexPositions;
@@ -223,9 +337,8 @@ public class VideoScene {
 
     /* package */ void prepare(Context context) {
       // Prepare shader programs.
-      videoHoleProgram = GLUtil.createProgram(
-          VERTEX_SHADER, VIDEO_HOLE_FRAGMENT_SHADER);
-      if (videoHoleProgram == 0) {
+      solidColorProgram = GLUtil.createProgram(VERTEX_SHADER, SOLID_COLOR_FRAGMENT_SHADER);
+      if (solidColorProgram == 0) {
         throw new RuntimeException("Could not create video program");
       }
       spriteProgram = GLUtil.createProgram(VERTEX_SHADER, SPRITE_FRAGMENT_SHADER);

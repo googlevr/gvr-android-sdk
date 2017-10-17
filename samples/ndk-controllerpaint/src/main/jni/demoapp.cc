@@ -30,11 +30,11 @@ namespace {
 static const bool kRequireClickToPaint = true;
 
 // Near and far clipping planes.
-static const float kNearClip = 0.1f;
-static const float kFarClip = 1000.0f;
+static const float kNearClip = 0.01f;
+static const float kFarClip = 100.0f;
 
 // The distance at which we paint.
-static const float kDefaultPaintDistance = 200.0f;
+static const float kDefaultPaintDistance = 2.0f;
 
 // File name for the paint texture. This is stored in the app's assets.
 // The paint texture is stored in raw RGB format, with each three bytes
@@ -86,21 +86,14 @@ static int kGeomTexCoordOffset = 3;  // in elements, not bytes.
 static int kGeomDataStride = 5 * sizeof(float);
 
 // Repetitions of the ground texture.
-static float kGroundTexRepeat = 200.0f;
+static float kGroundTexRepeat = 20.0f;
 
 // Size of the ground plane.
-static float kGroundSize = 300.0f;
+static float kGroundSize = 30.0f;
 
-// Y coordinate of the ground plane.
-static float kGroundY = -20.0f;
-
-// Ground's model matrix.
-static const gvr::Mat4f kGroundModelMatrix = {
-    1.0f, 0.0f, 0.0f, 0.0f,
-    0.0f, 1.0f, 0.0f, kGroundY,
-    0.0f, 0.0f, 1.0f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f,
-};
+// Y coordinate of the ground plane, in meters. If this (and other distances)
+// are too far, 6DOF tracking will have no visible effect.
+static float kDefaultGroundY = -2.0f;
 
 // Geometry of the ground plane.
 static float kGroundGeom[] = {
@@ -115,7 +108,7 @@ static float kGroundGeom[] = {
 static int kGroundVertexCount = 6;
 
 // Size of the cursor.
-static float kCursorScale = 1.0f;
+static float kCursorScale = 0.01f;
 
 // Geometry of the cursor.
 static float kCursorGeom[] = {
@@ -158,15 +151,15 @@ static const int64_t kPredictionTimeWithoutVsyncNanos = 50000000;  // 50ms
 
 // Minimum length of any paint segment. If the user tries to draw something
 // smaller than this length, it is ignored.
-static const float kMinPaintSegmentLength = 4.0f;
+static const float kMinPaintSegmentLength = 0.04f;
 
 // When the number of vertices in the recently drawn geometry exceeds this
 // number, we commit the geometry to the GPU as a VBO.
 static const int kVboCommitThreshold = 50;
 
 // Minimum and maximum stroke widths.
-static const float kMinStrokeWidth = 1.5f;
-static const float kMaxStrokeWidth = 4.0f;
+static const float kMinStrokeWidth = 0.015f;
+static const float kMaxStrokeWidth = 0.04f;
 
 }  // namespace
 
@@ -289,7 +282,7 @@ void DemoApp::OnDrawFrame() {
   pred_time.monotonic_system_time_nanos += kPredictionTimeWithoutVsyncNanos;
 
   gvr::Mat4f head_view =
-      gvr_api_->GetHeadSpaceFromStartSpaceRotation(pred_time);
+      gvr_api_->GetHeadSpaceFromStartSpaceTransform(pred_time);
   const gvr::Mat4f left_eye_view =
       Utils::MatrixMul(gvr_api_->GetEyeFromHeadMatrix(GVR_LEFT_EYE),
                        head_view);
@@ -541,7 +534,20 @@ void DemoApp::DrawObject(const gvr::Mat4f& mvp,
 
 void DemoApp::DrawGround(const gvr::Mat4f& view_matrix,
                          const gvr::Mat4f& proj_matrix) {
-  gvr::Mat4f mv = Utils::MatrixMul(view_matrix, kGroundModelMatrix);
+  gvr::Value floor_height;
+  // This may change when the floor height changes so it's computed every frame.
+  float ground_y = gvr_api_->GetCurrentProperties().Get(
+                       GVR_PROPERTY_TRACKING_FLOOR_HEIGHT, &floor_height)
+                       ? floor_height.f
+                       : kDefaultGroundY;
+  const gvr::Mat4f ground_model_matrix = {
+      1.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f, ground_y,
+      0.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f,
+  };
+
+  gvr::Mat4f mv = Utils::MatrixMul(view_matrix, ground_model_matrix);
   gvr::Mat4f mvp = Utils::MatrixMul(proj_matrix, mv);
 
   DrawObject(mvp, kGroundColor, kGroundGeom, 0, kGroundVertexCount);

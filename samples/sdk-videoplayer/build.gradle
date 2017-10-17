@@ -37,9 +37,9 @@ model {
 }
 
 dependencies {
-    compile 'com.google.android.exoplayer:exoplayer:r2.4.0'
+    compile 'com.google.android.exoplayer:exoplayer:r2.5.1'
     compile 'com.google.android.exoplayer:extension-gvr:r2.4.0'
 
-    compile 'com.google.vr:sdk-base:1.80.0'
-    compile 'com.google.vr:sdk-common:1.80.0'
+    compile 'com.google.vr:sdk-base:1.100.0'
+    compile 'com.google.vr:sdk-common:1.100.0'
 }
