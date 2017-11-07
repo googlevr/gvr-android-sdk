@@ -72,6 +72,15 @@ typedef enum {
   /// Support for providing head poses with 6 degrees-of-freedom (orientation
   /// and position).
   GVR_FEATURE_HEAD_POSE_6DOF = 3,
+  /// Indicates that buffers which are part of a frame are backed by Android
+  /// AHardwareBuffer objects. When this feature is available, the function
+  /// gvr_frame_get_hardware_buffer can be called to get the AHardwareBuffer
+  /// pointer.
+  /// Hardware buffers are only supported on Android O and later, on a
+  /// best-effort basis. Future versions of GVR and/or Android may also cease to
+  /// support hardware buffers if the underlying implementation no longer
+  /// supports this rendering path.
+  GVR_FEATURE_HARDWARE_BUFFERS = 4,
 } gvr_feature;
 
 /// @}
@@ -681,6 +690,9 @@ typedef enum {
 } gvr_event_type;
 
 /// @}
+
+// Forward declaration of Android AHardwareBuffer.
+typedef struct AHardwareBuffer AHardwareBuffer;
 
 #ifdef __cplusplus
 }  // extern "C"

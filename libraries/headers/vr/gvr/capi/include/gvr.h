@@ -775,6 +775,23 @@ gvr_sizei gvr_frame_get_buffer_size(const gvr_frame* frame, int32_t index);
 ///     submitted.
 int32_t gvr_frame_get_framebuffer_object(const gvr_frame* frame, int32_t index);
 
+/// Gets the hardware buffer backing the specified frame buffer.
+///
+/// Hardware buffers (Android NDK type AHardwareBuffer) are used to back frames
+/// if asynchronous reprojection is enabled and GVR_FEATURE_HARDWARE_BUFFERS is
+/// supported (currently on Android O and later Android versions). See the
+/// documentation for the feature enum value for further information.
+///
+/// There is no need to acquire or release the AHardwareBuffer. The swap chain
+/// maintains a reference to it while the frame is acquired.
+///
+/// @param frame The gvr_frame from which to obtain the buffer.
+/// @param index Index of the pixel buffer.
+/// @return Pointer to AHardwareBuffer backing the frame's pixel buffer where
+///     available, or NULL otherwise.
+AHardwareBuffer* gvr_frame_get_hardware_buffer(const gvr_frame* frame,
+                                               int32_t index);
+
 /// Submits the frame for distortion and display on the screen. The passed
 /// pointer is nulled to prevent reuse.
 ///
@@ -1273,8 +1290,13 @@ class Frame : public WrapperBase<gvr_frame> {
   }
 
   /// For more information, see gvr_frame_get_framebuffer_object().
-  int32_t GetFramebufferObject(int32_t index) {
+  int32_t GetFramebufferObject(int32_t index) const {
     return gvr_frame_get_framebuffer_object(cobj(), index);
+  }
+
+  /// For more information, see gvr_frame_get_hardware_buffer().
+  void* GetHardwareBuffer(int32_t index) const {
+    return gvr_frame_get_hardware_buffer(cobj(), index);
   }
 
   /// For more information, see gvr_frame_submit().

@@ -17,8 +17,8 @@ apply plugin: 'com.android.model.application'
 
 model {
     android {
-        compileSdkVersion 25
-        buildToolsVersion "25.0.0"
+        compileSdkVersion 26
+        buildToolsVersion "26.0.0"
 
         defaultConfig {
             minSdkVersion.apiLevel 19
@@ -37,5 +37,5 @@ model {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-panowidget:1.100.0'
+    compile 'com.google.vr:sdk-panowidget:1.101.0'
 }
