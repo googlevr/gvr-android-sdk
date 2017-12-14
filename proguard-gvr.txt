@@ -1,4 +1,4 @@
-# Don't obfuscate any NDK/SDK code. This makes the debugging of stack traces in
+# Don't obfuscate any NDK/SDK code. This makes the debugging of stack traces
 # in release builds easier.
 -keepnames class com.google.vr.ndk.** { *; }
 -keepnames class com.google.vr.sdk.** { *; }

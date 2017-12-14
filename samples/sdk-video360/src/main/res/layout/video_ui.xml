@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- UI to control video playback. See the class's javadoc for more info. -->
+<com.google.vr.sdk.samples.video360.VideoUiView
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/video_ui_view"
+  android:orientation="horizontal"
+  android:layout_width="match_parent"
+  android:layout_height="48dp"
+  android:background="#000">
+
+  <ImageButton
+    android:id="@+id/play_pause_toggle"
+    android:layout_width="48dp"
+    android:layout_height="match_parent"
+    android:background="@drawable/pause_button"
+    android:contentDescription="@string/pause_label"/>
+
+  <SeekBar
+    android:id="@+id/seek_bar"
+    style="?android:attr/progressBarStyleHorizontal"
+    android:layout_height="match_parent"
+    android:layout_weight="8"
+    android:layout_width="0dp"/>
+
+  <TextView
+    android:id="@+id/status_text"
+    android:text="..."
+    android:gravity="center|end"
+    android:layout_height="match_parent"
+    android:layout_width="72dp"
+    android:textSize="12dp"
+    android:textColor="#fff"
+    android:textAlignment="textEnd"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"/>
+
+  <ImageButton
+    android:id="@+id/enter_exit_vr"
+    android:layout_width="48dp"
+    android:layout_height="match_parent"
+    android:background="@drawable/enter_vr"
+    android:contentDescription="@string/enter_vr_label"/>
+</com.google.vr.sdk.samples.video360.VideoUiView>

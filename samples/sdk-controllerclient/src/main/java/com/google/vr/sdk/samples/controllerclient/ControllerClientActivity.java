@@ -19,6 +19,7 @@ package com.google.vr.sdk.samples.controllerclient;
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.widget.TextView;
 import com.google.vr.sdk.base.AndroidCompat;
 import com.google.vr.sdk.controller.Controller;
@@ -149,6 +150,8 @@ public class ControllerClientActivity extends Activity {
       apiStatusView.setText(apiStatus);
       controllerStateView.setText(ConnectionStates.toString(controllerState));
       controller.update();
+
+      Log.v(TAG, "Controller Orientation: " + controller.orientation);
 
       float[] angles = new float[3];
       controller.orientation.toYawPitchRollDegrees(angles);

@@ -38,6 +38,7 @@ public class VideoScene {
   private static final String TAG = "VideoScreen";
   private static final RectF videoUv = new RectF(0.f, 1.f, 1.f, 0.f);
 
+  private final Settings settings;
   // Helper object for GL resources used by the scene.
   private final Resources resources = new Resources();
   // Scratch array for the transform from SPRITE_VERTICES_DATA space to eye space.
@@ -62,8 +63,10 @@ public class VideoScene {
   private volatile int videoSurfaceID = BufferViewport.EXTERNAL_SURFACE_ID_NONE;
   private volatile boolean isVideoPlaying = false;
   private float currentFpsFraction = 0.f;
-  private boolean showVideoFrameRateBar = false;
-  private boolean useDrmVideoSample = true;
+
+  public VideoScene(Settings settings) {
+    this.settings = settings;
+  }
 
   /**
    * Sets whether video playback has started. If video playback has not started, the loading splash
@@ -92,13 +95,6 @@ public class VideoScene {
    */
   public void setVideoTransform(float[] newWorldFromQuad) {
     System.arraycopy(newWorldFromQuad, 0, this.worldFromQuad, 0, 16);
-  }
-
-  /** Enable or disable a colored bar under the video indicating the fraction of its native frame
-   * rate achieved by the video decoder in the last few seconds. */
-  public void setVideoFrameRateBar(boolean enable, boolean isDrm) {
-    showVideoFrameRateBar = enable;
-    useDrmVideoSample = isDrm;
   }
 
   /**
@@ -186,7 +182,7 @@ public class VideoScene {
     }
     GLUtil.checkGlError(TAG, "glDrawArrays");
 
-    if (showVideoFrameRateBar) {
+    if (settings.showFrameRateBar) {
       drawVideoFrameRateBar(perspectiveFromWorld);
     }
   }
@@ -206,7 +202,7 @@ public class VideoScene {
     final int uColor = GLES20.glGetUniformLocation(resources.solidColorProgram, "uColor");
     // Fade between red and 80% gray when the video is DRM-protected. Fade between red and yellow
     // when the video is not protected.
-    if (useDrmVideoSample) {
+    if (settings.useDrmVideoSample) {
       GLES20.glUniform4f(uColor, 1.f - 0.2f * colorFpsFraction, 0.8f * colorFpsFraction,
           0.8f * colorFpsFraction, 1.f);
     } else {
@@ -235,7 +231,7 @@ public class VideoScene {
    */
   public void updateVideoFpsFraction(
       long averagingPeriodInSeconds, float nativeFrameRate, DecoderCounters counters) {
-    if (!showVideoFrameRateBar || counters == null) {
+    if (!settings.showFrameRateBar || counters == null) {
       currentFpsFraction = 0.f;
       return;
     }

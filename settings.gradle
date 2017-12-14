@@ -6,6 +6,7 @@ include ':samples:sdk-controllerclient'
 include ':samples:sdk-simplepanowidget'
 include ':samples:sdk-simplevideowidget'
 include ':samples:sdk-treasurehunt'
+include ':samples:sdk-video360'
 include ':samples:sdk-videoplayer'
 
 // NDK samples are disabled by default because they need the Android NDK to be

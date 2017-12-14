@@ -50,6 +50,7 @@ public class VideoSceneRenderer implements Renderer {
 
   private final Context context;
   private final GvrApi api;
+  private final Settings settings;
   private final BufferViewportList recommendedList;
   private final BufferViewportList viewportList;
   private final BufferViewport scratchViewport;
@@ -74,12 +75,11 @@ public class VideoSceneRenderer implements Renderer {
   private final RectF eyeFov = new RectF();
   private final RectF eyeUv = new RectF();
   private final Point targetSize = new Point();
-  private boolean showVideoFrameRateBar = false;
-  private boolean useDrmVideoSample = true;
 
-  VideoSceneRenderer(Context context, GvrApi api) {
+  VideoSceneRenderer(Context context, GvrApi api, Settings settings) {
     this.context = context;
     this.api = api;
+    this.settings = settings;
     recommendedList = api.createBufferViewportList();
     viewportList = api.createBufferViewportList();
     scratchViewport = api.createBufferViewport();
@@ -142,13 +142,6 @@ public class VideoSceneRenderer implements Renderer {
     }
   }
 
-  /** Enable or disable a colored bar under the video indicating the fraction of its native frame
-   * rate achieved by the video decoder in the last few seconds. */
-  public void setVideoFrameRateBar(boolean enable, boolean isDrm) {
-    showVideoFrameRateBar = enable;
-    useDrmVideoSample = isDrm;
-  }
-
   /**
    * Signals whether video playback has started. The video scene renders a loading texture when
    * hasPlaybackStarted is false, and renders alpha zero where video should appear when true.
@@ -203,8 +196,7 @@ public class VideoSceneRenderer implements Renderer {
 
   private void initVideoScene() {
     // Initialize the video scene. Draws the app's color buffer.
-    videoScene = new VideoScene();
-    videoScene.setVideoFrameRateBar(showVideoFrameRateBar, useDrmVideoSample);
+    videoScene = new VideoScene(settings);
     videoScene.prepareGLResources(context);
     videoScene.setHasVideoPlaybackStarted(shouldShowVideo);
     videoScene.setVideoSurfaceId(videoSurfaceID);

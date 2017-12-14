@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="com.google.vr.ndk.samples.controllerpaint"
-      android:versionCode="170912043"
-      android:versionName="1.101.0">
+      android:versionCode="171114033"
+      android:versionName="1.120.0">
 
   <!-- The Daydream SDK requires API 24+ and OpenGL ES 3.2+. -->
   <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="24" />
@@ -33,7 +33,7 @@
         android:name=".MainActivity"
         android:label="@string/app_name"
         android:screenOrientation="landscape"
-        android:configChanges="orientation|keyboardHidden|screenSize"
+        android:configChanges="orientation|keyboardHidden|screenSize|uiMode|navigation"
         android:enableVrMode="@string/gvr_vr_mode_component"
         android:resizeableActivity="false">
 

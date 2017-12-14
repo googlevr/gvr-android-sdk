@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Views rendered in VR should use a theme that matches the rest of the VR UI.-->
+<resources>
+  <style name="VrTheme" parent="android:Theme.Material">
+  </style>
+</resources>

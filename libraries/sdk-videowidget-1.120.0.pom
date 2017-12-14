@@ -3,8 +3,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.google.vr</groupId>
-  <artifactId>sdk-commonwidget</artifactId>
-  <version>1.101.0</version>
+  <artifactId>sdk-videowidget</artifactId>
+  <version>1.120.0</version>
   <packaging>aar</packaging>
 
   <name>Google VR SDK-CommonWidget</name>
@@ -16,10 +16,23 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.google.vr</groupId>
-      <artifactId>sdk-common</artifactId>
+      <groupId>com.android.support</groupId>
+      <artifactId>support-annotations</artifactId>
+      <version>25.2.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.android.support</groupId>
+      <artifactId>support-core-utils</artifactId>
       <type>aar</type>
-      <version>1.101.0</version>
+      <version>25.2.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.vr</groupId>
+      <artifactId>sdk-commonwidget</artifactId>
+      <type>aar</type>
+      <version>1.120.0</version>
     </dependency>
   </dependencies>
 </project>

@@ -76,7 +76,7 @@ extern "C" {
 ///       gvr_clock_time_point next_vsync = AppGetNextVsyncTime();
 ///
 ///       const gvr_mat4f head_view =
-///           gvr_get_head_space_from_start_space_rotation(gvr, next_vsync);
+///           gvr_get_head_space_from_start_space_transform(gvr, next_vsync);
 ///       const gvr_mat4f left_eye_view = MatrixMultiply(
 ///           gvr_get_eye_from_head_matrix(gvr, GVR_LEFT_EYE), head_view);
 ///       const gvr::Mat4f right_eye_view = MatrixMultiply(
@@ -499,7 +499,12 @@ int32_t gvr_buffer_viewport_get_external_surface_id(
     const gvr_buffer_viewport* viewport);
 
 /// Sets the ID of the externally-managed Surface texture from which this
-/// viewport reads. The ID is issued by GvrLayout.
+/// viewport reads. The ID is issued by GvrLayout. If this viewport does not
+/// read from an external surface, this should be set to
+/// GVR_EXTERNAL_SURFACE_ID_NONE, which is also the default value. If it does
+/// read from an external surface, set this to the ID obtained from GvrLayout
+/// and set the source buffer index to the special value
+/// GVR_BUFFER_INDEX_EXTERNAL_SURFACE.
 ///
 /// @param viewport The buffer viewport.
 /// @param external_surface_id The ID of the surface to read from.
@@ -821,6 +826,11 @@ void gvr_bind_default_framebuffer(gvr_context* gvr);
 /// @return The current monotonic system time.
 gvr_clock_time_point gvr_get_time_point_now();
 
+/// @deprecated Calls to this method can be safely replaced by calls to
+///    gvr_get_head_space_from_start_space_transform. The new API reflects that
+///    the call *can* return a full 6DoF transform when supported by both the
+///    host platform and the client application.
+///
 /// Gets the rotation from start space to head space.  The head space is a
 /// space where the head is at the origin and faces the -Z direction.
 ///
@@ -835,6 +845,11 @@ gvr_mat4f gvr_get_head_space_from_start_space_rotation(
 
 /// Gets the position and rotation from start space to head space.  The head
 /// space is a space where the head is at the origin and faces the -Z direction.
+///
+/// For platforms that support 6DoF head tracking, the app may also be required
+/// to declare support for 6DoF in order to receive a fully formed 6DoF pose,
+/// e.g., on Android, this requires declaration of support for at least version
+/// 1 of the "android.hardware.vr.headtracking" feature in the manifest.
 ///
 /// @param gvr Pointer to the gvr instance from which to get the pose.
 /// @param time The time at which to get the head pose. The time should be in
@@ -1032,7 +1047,7 @@ class UserPrefs : public WrapperBase<const gvr_user_prefs> {
   }
 };
 
-/// Convenience C++ wrapper for gvr_user_prefs.
+/// Convenience C++ wrapper for gvr_properties.
 class Properties : public WrapperBase<const gvr_properties> {
  public:
   using WrapperBase::WrapperBase;

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Layout for the 2D Activity. It will either show a permission button or the MonoscopicView. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/activity_root"
+  android:orientation="vertical"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent">
+
+  <!-- Permission request button that will be shown until the permission is granted. -->
+  <Button
+    android:id="@+id/permission_button"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="@string/permission_warning"/>
+
+  <!-- These views are hidden unless the permission is granted. -->
+  <com.google.vr.sdk.samples.video360.MonoscopicView
+    android:id="@+id/video_view"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_gravity="top"
+    android:layout_weight="1"
+    android:visibility="gone"/>
+
+  <include
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    layout="@layout/video_ui"
+    android:visibility="gone"/>
+</LinearLayout>

@@ -22,6 +22,8 @@
 #include <cmath>
 #include <random>
 
+#include "vr/gvr/capi/include/gvr_version.h"
+
 #define LOG_TAG "TreasureHuntCPP"
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
@@ -282,6 +284,8 @@ TreasureHuntRenderer::TreasureHuntRenderer(
       gvr_controller_api_(nullptr),
       gvr_viewer_type_(gvr_api_->GetViewerType()) {
   ResumeControllerApiAsNeeded();
+
+  LOGD("Built with GVR version: %s", GVR_SDK_VERSION_STRING);
   if (gvr_viewer_type_ == GVR_VIEWER_TYPE_CARDBOARD) {
     LOGD("Viewer type: CARDBOARD");
   } else if (gvr_viewer_type_ == GVR_VIEWER_TYPE_DAYDREAM) {

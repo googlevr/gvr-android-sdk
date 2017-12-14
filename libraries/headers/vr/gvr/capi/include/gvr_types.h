@@ -198,8 +198,15 @@ typedef struct gvr_frame_ gvr_frame;
 /// Generic flag type.
 typedef uint32_t gvr_flags;
 
+/// Generic 64-bit flag type.
+typedef uint64_t gvr_flags64;
+
 /// Opaque handle to a collection of properties.
 typedef struct gvr_properties_ gvr_properties;
+
+/// Represents a Daydream Controller API object, used to invoke the
+/// Daydream Controller API.
+typedef struct gvr_controller_context_ gvr_controller_context;
 
 /// A generic container for various pure value types.
 typedef struct gvr_value {
@@ -211,6 +218,7 @@ typedef struct gvr_value {
     int32_t i;
     int64_t i64;
     gvr_flags fl;
+    gvr_flags64 fl64;
     gvr_sizei si;
     gvr_recti ri;
     gvr_rectf rf;
@@ -231,8 +239,8 @@ typedef struct gvr_value {
 /// The type of a recentering associated with a GVR_EVENT_RECENTER event.
 typedef enum {
   /// Recentering state received from the platform upon starting or resuming the
-  /// application. This event is usually preceded in the same frame by a
-  /// GVR_EVENT_HEAD_TRACKING_RESUMED event.
+  /// application. This event is usually precedes a
+  /// GVR_EVENT_HEAD_TRACKING_RESUMED event in the same frame.
   GVR_RECENTER_EVENT_RESTART = 1,
 
   /// A recenter event triggered by the controller (e.g. long-press on Home
@@ -251,6 +259,10 @@ typedef enum {
 typedef struct gvr_recenter_event_data {
   int32_t recenter_type;  // gvr_recenter_event_type
   gvr_flags recenter_event_flags;
+
+  /// The new transform that maps from "sensor" space to the recentered "start"
+  /// space. This transform can also be retrieved by querying for the
+  /// GVR_PROPERTY_RECENTER_TRANSFORM property.
   gvr_mat4f start_space_from_tracking_space_transform;
 } gvr_recenter_event_data;
 
@@ -480,19 +492,36 @@ typedef enum {
   // Virtual stereo speakers at -30 degrees and +30 degrees.
   GVR_AUDIO_SURROUND_FORMAT_SURROUND_STEREO = 2,
 
-  // 5.1 surround sound according to the ITU-R BS 775 speaker configuration
+  // 5.1 surround sound according to the ITU-R BS.775-3 speaker configuration
   // recommendation:
-  //   - Front left (FL) at 30 degrees.
-  //   - Front right (FR) at -30 degrees.
-  //   - Front center (FC) at 0 degrees.
+  //   - Left (L) at 30 degrees.
+  //   - Right (R) at -30 degrees.
+  //   - Center (C) at 0 degrees.
   //   - Low frequency effects (LFE) at front center at 0 degrees.
-  //   - Left side (LS) at 110 degrees.
-  //   - Right side (RS) at -110 degrees.
+  //   - Left surround (LS) at 110 degrees.
+  //   - Right surround (RS) at -110 degrees.
   //
-  // The 5.1 channel input layout must matches AAC: FL, FR, FC, LFE, LS, RS.
+  // The 5.1 channel input layout must matches AAC: L, R, C, LFE, LS, RS.
   // Note that this differs from the Vorbis/Opus 5.1 channel layout, which
-  // is: FL, FC, FR, LS, RS, LFE.
+  // is: L, C, R, LS, RS, LFE.
   GVR_AUDIO_SURROUND_FORMAT_SURROUND_FIVE_DOT_ONE = 3,
+
+  // 7.1 surround sound according to the ITU-R BS.775-3 speaker configuration
+  // recommendation:
+  //   - Left (FL) at 30 degrees.
+  //   - Right (FR) at -30 degrees.
+  //   - Center (C) at 0 degrees.
+  //   - Low frequency effects (LFE) at front center at 0 degrees.
+  //   - Left surround 1 (LS1) at 90 degrees.
+  //   - Right surround 1 (RS1) at -90 degrees.
+  //   - Left surround 2 (LS2) at 150 degrees.
+  //   - Right surround 2 (LS2) at -150 degrees.
+  //
+  // The 7.1 channel input layout must matches AAC: L, R, C, LFE, LS1, RS1,
+  // LS2, RS2.
+  // Note that this differs from the Vorbis/Opus 7.1 channel layout, which
+  // is: L, C, R, LS1, RS1, LS2, RS2, LFE.
+  GVR_AUDIO_SURROUND_FORMAT_SURROUND_SEVEN_DOT_ONE = 10,
 
   // First-order ambisonics (AmbiX format: 4 channels, ACN channel ordering,
   // SN3D normalization).
@@ -524,6 +553,8 @@ typedef enum {
   // (AmbiX format: 16 channels, ACN channel ordering, SN3D normalization).
   // Channel 17 to 18 contain non-diegetic stereo.
   GVR_AUDIO_SURROUND_FORMAT_THIRD_ORDER_AMBISONICS_WITH_NON_DIEGETIC_STEREO = 9,
+
+  // Note: Next available value is: 11
 } gvr_audio_surround_format_type;
 
 /// Valid color formats for swap chain buffers.
@@ -604,7 +635,9 @@ typedef enum {
   /// The current transform that maps from "sensor" space to the recentered
   /// "start" space. Apps can optionally undo or extend this transform to
   /// perform custom recentering logic with the returned pose, but all poses
-  /// supplied during frame submission are assumed to be in start space.
+  /// supplied during frame submission are assumed to be in start space. This
+  /// transform matches the one reported in the most
+  /// recent gvr_recenter_event_data.
   /// Type: gvr_mat4f
   GVR_PROPERTY_RECENTER_TRANSFORM = 2,
 
@@ -632,14 +665,14 @@ typedef enum {
   GVR_PROPERTY_TRACKING_STATUS = 6
 } gvr_property_type;
 
-// Safety region types exposed from the GVR_PROPERTY_SAFETY_REGION property.
+/// Safety region types exposed from the GVR_PROPERTY_SAFETY_REGION property.
 typedef enum {
   GVR_SAFETY_REGION_NONE = 0,
 
-  // A safety region defined by a vertically-oriented cylinder, extending
-  // infinitely along the Y axis, and centered at the start space origin.
-  // Extents can be queried with the GVR_PROPERTY_SAFETY_CYLINDER_INNER_RADIUS
-  // and GVR_PROPERTY_SAFETY_CYLINDER_OUTER_RADIUS property keys.
+  /// A safety region defined by a vertically-oriented cylinder, extending
+  /// infinitely along the Y axis, and centered at the start space origin.
+  /// Extents can be queried with the GVR_PROPERTY_SAFETY_CYLINDER_INNER_RADIUS
+  /// and GVR_PROPERTY_SAFETY_CYLINDER_OUTER_RADIUS property keys.
   GVR_SAFETY_REGION_CYLINDER = 1,
 } gvr_safety_region_type;
 
@@ -679,7 +712,7 @@ typedef enum {
 
   /// Notification that head tracking was resumed (or started for the first
   /// time). Before this event is sent, head tracking will always return the
-  /// identity pose. This event is usually followed in the same frame by a
+  /// identity pose. This event is usually preceded in the same frame by a
   /// GVR_EVENT_RECENTER of recenter_type GVR_RECENTER_EVENT_RESTART.
   /// Event data type: none
   GVR_EVENT_HEAD_TRACKING_RESUMED = 4,
@@ -917,6 +950,8 @@ const ArmModelBehavior kArmModelBehaviorFollowGaze =
     static_cast<ArmModelBehavior>(GVR_ARM_MODEL_FOLLOW_GAZE);
 const ArmModelBehavior kArmModelBehaviorSyncGaze =
     static_cast<ArmModelBehavior>(GVR_ARM_MODEL_SYNC_GAZE);
+const ArmModelBehavior kArmModelBehaviorIgnoreGaze =
+    static_cast<ArmModelBehavior>(GVR_ARM_MODEL_IGNORE_GAZE);
 
 typedef gvr_error Error;
 const Error kErrorNone = static_cast<Error>(GVR_ERROR_NONE);

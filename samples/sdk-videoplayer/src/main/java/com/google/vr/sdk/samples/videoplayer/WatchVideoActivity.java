@@ -16,8 +16,6 @@
 package com.google.vr.sdk.samples.videoplayer;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -48,20 +46,12 @@ import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
  */
 public class WatchVideoActivity extends Activity {
   private static final String TAG = WatchVideoActivity.class.getSimpleName();
-  private static final String LOCAL_PREFERENCE_FILE = "videoplayerPrefs";
-  private static final String USE_DRM_VIDEO_SAMPLE = "use_drm_video_sample";
-  private static final String SHOW_FRAME_RATE_BAR = "show_frame_rate_bar";
 
   private GvrLayout gvrLayout;
   private GLSurfaceView surfaceView;
   private VideoSceneRenderer renderer;
   private VideoExoPlayer2 videoPlayer;
-  // When true, a DRM-protected sample is played back in a protected compositor GL context. When
-  // false, a cleartext sample is played in a normal context.
-  private boolean useDrmVideoSample = true;
-  // Controls whether a colored bar showing the average video frame rate over the last few seconds
-  // is shown under the video.
-  private boolean showFrameRateBar = false;
+  private Settings settings;
   private boolean hasFirstFrame;
 
   // Transform a quad that fills the clip box at Z=0 to a 16:9 screen at Z=-4. Note that the matrix
@@ -98,21 +88,7 @@ public class WatchVideoActivity extends Activity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-    // Use extra intent arguments to dynamically disable/enable DRM and the frame rate bar.
-    // The intents are "sticky", i.e., they affect all future launches of the app until a different
-    // intent is passed or the package data is cleared.
-    readPreferences();
-    Bundle intentParams = getIntent().getExtras();
-    if (intentParams != null) {
-      if (intentParams.containsKey(USE_DRM_VIDEO_SAMPLE)) {
-        useDrmVideoSample = intentParams.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
-      }
-      if (intentParams.containsKey(SHOW_FRAME_RATE_BAR)) {
-        showFrameRateBar = intentParams.getBoolean(SHOW_FRAME_RATE_BAR, false);
-      }
-    }
-    storePreferences();
+    settings = new Settings(this, getIntent().getExtras());
 
     setImmersiveSticky();
     getWindow()
@@ -136,8 +112,7 @@ public class WatchVideoActivity extends Activity {
     surfaceView.setEGLConfigChooser(5, 6, 5, 0, 0, 0);
     gvrLayout.setPresentationView(surfaceView);
     gvrLayout.setKeepScreenOn(true);
-    renderer = new VideoSceneRenderer(this, gvrLayout.getGvrApi());
-    renderer.setVideoFrameRateBar(showFrameRateBar, useDrmVideoSample);
+    renderer = new VideoSceneRenderer(this, gvrLayout.getGvrApi(), settings);
 
     // Initialize the ExternalSurfaceListener to receive video Surface callbacks.
     hasFirstFrame = false;
@@ -182,7 +157,7 @@ public class WatchVideoActivity extends Activity {
             videoSurfaceListener,
             new Handler(Looper.getMainLooper()),
             /* Whether video playback should use a protected reprojection pipeline. */
-            useDrmVideoSample);
+            settings.useDrmVideoSample);
 
     if (!isAsyncReprojectionEnabled) {
       // The device does not support this API, video will not play.
@@ -219,11 +194,11 @@ public class WatchVideoActivity extends Activity {
   }
 
   private void initVideoPlayer() {
-    videoPlayer = new VideoExoPlayer2(getApplication());
+    videoPlayer = new VideoExoPlayer2(getApplication(), settings);
     Uri streamUri;
     String drmVideoId = null;
 
-    if (useDrmVideoSample) {
+    if (settings.useDrmVideoSample) {
       // Protected video, requires a secure path for playback.
       Log.i(TAG, "Using DRM-protected video sample.");
       streamUri = Uri.parse("https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd");
@@ -301,6 +276,7 @@ public class WatchVideoActivity extends Activity {
   @Override
   protected void onDestroy() {
     gvrLayout.shutdown();
+    settings = null;
     super.onDestroy();
   }
 
@@ -338,21 +314,6 @@ public class WatchVideoActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-  }
-
-  private void readPreferences() {
-    SharedPreferences pref =
-        this.getSharedPreferences(LOCAL_PREFERENCE_FILE, Context.MODE_PRIVATE);
-    useDrmVideoSample = pref.getBoolean(USE_DRM_VIDEO_SAMPLE, true);
-    showFrameRateBar = pref.getBoolean(SHOW_FRAME_RATE_BAR, false);
-  }
-
-  private void storePreferences() {
-    SharedPreferences.Editor pref =
-        this.getSharedPreferences(LOCAL_PREFERENCE_FILE, Context.MODE_PRIVATE).edit();
-    pref.putBoolean(USE_DRM_VIDEO_SAMPLE, useDrmVideoSample)
-        .putBoolean(SHOW_FRAME_RATE_BAR, showFrameRateBar)
-        .commit();
   }
 
   /**

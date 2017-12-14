@@ -59,7 +59,7 @@ extern "C" {
 ///     gvr_controller_state* state = gvr_controller_state_create();
 ///
 ///     // Resume:
-///     gvr_controller_resume(api);
+///     gvr_controller_resume(context);
 ///
 /// Usage:
 ///
@@ -241,7 +241,12 @@ void gvr_controller_state_update(gvr_controller_context* api,
 /// handedness and gaze behavior can be changed as needed in a sequence of
 /// frames. This needs to be called before gvr_controller_state_update() to
 /// apply arm model. GVR_CONTROLLER_ENABLE_ARM_MODEL flag needs to be enabled
-/// to apply arm model.
+/// to apply arm model. The controller position computed with arm model is
+/// relative to the head origin. If using the opt-in neck model, the effective
+/// eye position after using vr_apply_neck_model() is shifted forward from the
+/// head origin by the neck-to-eye distance (8cm) when the head is in
+/// neutral position, and a matching forward offset should be applied to the
+/// controller position to compensate.
 ///
 /// When multiple controllers are configured, this arm model will be applied to
 /// the controller at the given controller_index, if one exists.

@@ -23,6 +23,7 @@ import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 import com.google.android.exoplayer2.ext.gvr.GvrAudioProcessor;
 import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
+import com.google.android.exoplayer2.source.ClippingMediaSource;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.TrackGroupArray;
@@ -42,6 +43,7 @@ import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Wrapper for ExoPlayer2 functionality. Handles all the necessary setup for video playback and
@@ -54,13 +56,15 @@ public class VideoExoPlayer2 implements Player.EventListener {
   private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
 
   private final Context context;
+  private final Settings settings;
   private final String userAgent;
   private final DataSource.Factory mediaDataSourceFactory;
   private GvrAudioProcessor gvrAudioProcessor;
   private SimpleExoPlayer player;
 
-  public VideoExoPlayer2(Context context) {
+  public VideoExoPlayer2(Context context, Settings settings) {
     this.context = context;
+    this.settings = settings;
     userAgent = Util.getUserAgent(context, "VideoExoPlayer");
     mediaDataSourceFactory = buildDataSourceFactory(true);
   }
@@ -124,7 +128,8 @@ public class VideoExoPlayer2 implements Player.EventListener {
    * @param uri The uri of the source video to play.
    * @param optionalDrmVideoId The ID of the video under the Widevine test license.
    */
-  public void initPlayer(Uri uri, String optionalDrmVideoId) throws UnsupportedDrmException {
+  public void initPlayer(Uri uri, String optionalDrmVideoId)
+      throws UnsupportedDrmException {
     DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
     if (optionalDrmVideoId != null) {
       try {
@@ -156,6 +161,10 @@ public class VideoExoPlayer2 implements Player.EventListener {
     player.setPlayWhenReady(true);
 
     MediaSource mediaSource = buildMediaSource(uri);
+    if (settings.videoLengthSeconds > 0) {
+      long lengthMicroseconds = TimeUnit.SECONDS.toMillis(settings.videoLengthSeconds);
+      mediaSource = new ClippingMediaSource(mediaSource, 0, lengthMicroseconds, false);
+    }
     // Prepare the player with the source.
     player.prepare(mediaSource);
   }
@@ -282,8 +291,11 @@ public class VideoExoPlayer2 implements Player.EventListener {
   public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {}
   @Override
   public void onPlayerError(ExoPlaybackException error) {}
-  @Override
+  // Remove when this is part of a stable ExoPlayer release.
   public void onPositionDiscontinuity() {}
+  // Uncomment when this is part of a stable ExoPlayer release.
+  // @Override
+  public void onPositionDiscontinuity(int reason) {}
   @Override
   public void onRepeatModeChanged(int repeatMode) {}
   // Uncomment when this is part of a stable ExoPlayer release.
@@ -293,4 +305,7 @@ public class VideoExoPlayer2 implements Player.EventListener {
   public void onTimelineChanged(Timeline timeline, Object manifest) {}
   @Override
   public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {}
+  // Uncomment when this is part of a stable ExoPlayer release
+  // @Override
+  public void onSeekProcessed() {}
 }
