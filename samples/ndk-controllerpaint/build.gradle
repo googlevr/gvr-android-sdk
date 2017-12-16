@@ -3,7 +3,7 @@ apply plugin: 'com.android.model.application'
 model {
     android {
         compileSdkVersion = 26
-        buildToolsVersion = "26.0.0"
+        buildToolsVersion = defaultBuildToolsVersion
 
         defaultConfig.with {
             applicationId = "com.google.vr.ndk.samples.controllerpaint"
@@ -53,7 +53,7 @@ model {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-base:1.120.0'
+    compile "com.google.vr:sdk-base:$vrSdkVersion"
 }
 
 build.dependsOn(':extractNdk')
