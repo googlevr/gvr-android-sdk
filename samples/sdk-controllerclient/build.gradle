@@ -18,13 +18,13 @@ apply plugin: 'com.android.model.application'
 model {
     android {
         compileSdkVersion 26
-        buildToolsVersion "26.0.0"
+        buildToolsVersion defaultBuildToolsVersion
 
         defaultConfig {
             minSdkVersion.apiLevel 24
             targetSdkVersion.apiLevel 24
             versionCode 1
-            versionName "1.0"
+            versionName vrSdkVersion
         }
 
         buildTypes {
@@ -37,6 +37,6 @@ model {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-base:1.120.0'
-    compile 'com.google.vr:sdk-controller:1.120.0'
+    compile "com.google.vr:sdk-base:$vrSdkVersion"
+    compile "com.google.vr:sdk-controller:$vrSdkVersion"
 }
