@@ -24,7 +24,7 @@ model {
             minSdkVersion.apiLevel 19
             targetSdkVersion.apiLevel 24
             versionCode 1
-            versionName "1.0"
+            versionName vrSdkVersion
         }
 
         buildTypes {
