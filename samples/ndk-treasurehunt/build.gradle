@@ -1,25 +1,23 @@
-apply plugin: 'com.android.model.application'
+apply plugin: 'com.android.application'
 
-model {
-    android {
-        compileSdkVersion = 26
-        buildToolsVersion = "26.0.0"
+android {
+    compileSdkVersion = 26
+    buildToolsVersion = "26.0.3"
 
-        defaultConfig.with {
-            applicationId = "com.google.vr.ndk.samples.treasurehunt"
-            minSdkVersion.apiLevel = 19
-            targetSdkVersion.apiLevel = 24
-            versionCode = 1
-            versionName = "1.0"
-        }
+    defaultConfig.with {
+        applicationId = "com.google.vr.ndk.samples.treasurehunt"
+        minSdkVersion = 19
+        targetSdkVersion = 24
+        versionCode = 1
+        versionName = "1.0"
     }
-    android.buildTypes {
+    buildTypes {
         release {
             minifyEnabled = true
             proguardFiles.add(file('../../proguard-gvr.txt'))
         }
     }
-    android.ndk {
+    ndk {
         moduleName = "treasurehunt_jni"
         cppFlags.add("-std=c++11")
         cppFlags.add("-I" + file("src/main/jni").absolutePath)
@@ -38,8 +36,8 @@ model {
         ldLibs.add("gvr")
         ldLibs.add("gvr_audio")
     }
-    android.productFlavors {
-        create ("fat") {
+    productFlavors {
+        create("fat") {
             // This sample builds all architectures by default. Note that if you
             // only want to build for a specific architecture, you need to
             // remove the appropriate lines below. You also need to remove the
