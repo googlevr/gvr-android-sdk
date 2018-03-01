@@ -34,7 +34,7 @@ import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
 /**
  * Simple activity for video playback using the Asynchronous Reprojection Video Surface API. For a
  * detailed description of the API, see the <a
- * href="https://developers.google.com/vr/android/ndk/gvr-ndk-rendering#using_video_viewports">ndk
+ * href="https://developers.google.com/vr/reference/gvr-ndk-rendering#using_video_viewports">ndk
  * walkthrough</a>. This sample supports DRM and unprotected video playback, configured in {@link
  * Configuration}.
  *

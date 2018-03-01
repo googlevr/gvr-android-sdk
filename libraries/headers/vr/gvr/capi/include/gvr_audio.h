@@ -355,7 +355,7 @@ extern "C" {
 ///                                           position_x,
 ///                                           position_y,
 ///                                           position_z);
-///     gvr_audio_api->PlaySound(source_id, true /* looped playback */);
+///     gvr_audio_api->PlaySound(source_id, /*looped playback=*/true);
 ///
 
 /// @{

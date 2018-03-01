@@ -162,7 +162,7 @@ public class VideoExoPlayer2 implements Player.EventListener {
 
     MediaSource mediaSource = buildMediaSource(uri);
     if (settings.videoLengthSeconds > 0) {
-      long lengthMicroseconds = TimeUnit.SECONDS.toMillis(settings.videoLengthSeconds);
+      long lengthMicroseconds = TimeUnit.SECONDS.toMicros(settings.videoLengthSeconds);
       mediaSource = new ClippingMediaSource(mediaSource, 0, lengthMicroseconds, false);
     }
     // Prepare the player with the source.
@@ -301,8 +301,11 @@ public class VideoExoPlayer2 implements Player.EventListener {
   // Uncomment when this is part of a stable ExoPlayer release.
   // @Override
   public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {}
-  @Override
+  // Remove when this is part of a stable ExoPlayer release.
   public void onTimelineChanged(Timeline timeline, Object manifest) {}
+  // Uncomment when this is part of a stable ExoPlayer release.
+  // @Override
+  public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {}
   @Override
   public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {}
   // Uncomment when this is part of a stable ExoPlayer release

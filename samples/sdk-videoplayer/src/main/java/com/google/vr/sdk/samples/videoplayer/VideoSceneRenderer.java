@@ -132,7 +132,7 @@ public class VideoSceneRenderer implements Renderer {
    * <p>Note: this can be set at any time. If there are no initialized ExternalSurfaces or the
    * ExternalSurface buffer at the ID is not ready, the GvrApi skips rendering the Surface.
    *
-   * @param id The ID of the video Surface. {@link BufferViewport.EXTERNAL_SURFACE_ID_NONE} if the
+   * @param id The ID of the video Surface. {@link BufferViewport#EXTERNAL_SURFACE_ID_NONE} if the
    *     GvrApi should not sample from any Surface.
    */
   public void setVideoSurfaceId(int id) {

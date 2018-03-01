@@ -707,10 +707,17 @@ gvr_swap_chain* gvr_swap_chain_create(gvr_context* gvr,
                                       const gvr_buffer_spec** buffers,
                                       int32_t count);
 
-/// Destroys the swap chain and nulls the pointer.
+/// Destroys the swap chain and nulls the pointer that is passed in.  This
+/// should be called after rendering is finished to free all the buffers that
+/// have been allocated in the swap chain.
+///
+/// @param swap_chain The swap chain to destroy.
 void gvr_swap_chain_destroy(gvr_swap_chain** swap_chain);
 
 /// Gets the number of buffers in each frame of the swap chain.
+///
+/// @param swap_chain The swap chain to query.
+/// @return The number of buffers in the swap chain.
 int32_t gvr_swap_chain_get_buffer_count(const gvr_swap_chain* swap_chain);
 
 /// Retrieves the size of the specified pixel buffer. Note that if the buffer
@@ -799,6 +806,10 @@ AHardwareBuffer* gvr_frame_get_hardware_buffer(const gvr_frame* frame,
 
 /// Submits the frame for distortion and display on the screen. The passed
 /// pointer is nulled to prevent reuse.
+///
+/// Note: On Cardboard devices, this function makes OpenGL commands in the
+/// current thread's GL context; this can affect various GL state such as
+/// texture bindings, depth testing, backface culling, and blending.
 ///
 /// @param frame The frame to submit.
 /// @param list Buffer view configuration to be used for this frame.
@@ -1457,7 +1468,7 @@ class GvrApi {
     if (!context) {
       return nullptr;
     }
-    return std::unique_ptr<GvrApi>(new GvrApi(context, true /* owned */));
+    return std::unique_ptr<GvrApi>(new GvrApi(context, /*owned=*/true));
   }
 #else
   /// Instantiates and returns a GvrApi instance that owns a gvr_context.
@@ -1468,7 +1479,7 @@ class GvrApi {
     if (!context) {
       return nullptr;
     }
-    return std::unique_ptr<GvrApi>(new GvrApi(context, true /* owned */));
+    return std::unique_ptr<GvrApi>(new GvrApi(context, /*owned=*/true));
   }
 #endif  // #ifdef __ANDROID__
 
@@ -1699,7 +1710,7 @@ class GvrApi {
   /// @param context Pointer to a non-null, non-owned gvr_context instance.
   /// @return unique_ptr to the created GvrApi instance. Never null.
   static std::unique_ptr<GvrApi> WrapNonOwned(gvr_context* context) {
-    return std::unique_ptr<GvrApi>(new GvrApi(context, false /* owned */));
+    return std::unique_ptr<GvrApi>(new GvrApi(context, /*owned=*/false));
   }
   /// @}
 

@@ -378,10 +378,13 @@ typedef enum {
   GVR_CONTROLLER_BUTTON_APP = 3,
   GVR_CONTROLLER_BUTTON_VOLUME_UP = 4,
   GVR_CONTROLLER_BUTTON_VOLUME_DOWN = 5,
+  GVR_CONTROLLER_BUTTON_RESERVED0 = 6,
+  GVR_CONTROLLER_BUTTON_RESERVED1 = 7,
+  GVR_CONTROLLER_BUTTON_RESERVED2 = 8,
 
-  /// Note: there are 5 buttons on the controller, but the state arrays have
+  /// Note: there are 8 buttons on the controller, but the state arrays have
   /// this many elements due to the inclusion of a dummy "none" button.
-  GVR_CONTROLLER_BUTTON_COUNT = 6,
+  GVR_CONTROLLER_BUTTON_COUNT = 9,
 } gvr_controller_button;
 
 /// Controller battery states.

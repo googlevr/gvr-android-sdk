@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.google.vr.sdk.samples.videoplayer"
-    android:versionCode="171114033"
-    android:versionName="1.120.0">
+    android:versionCode="180130033"
+    android:versionName="1.130.0">
 
     <!-- The video API works on Daydream-ready devices with Asynchronous
          Reprojection on Android N+ and OpenGL ES 3+ -->

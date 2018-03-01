@@ -21,7 +21,7 @@ model {
         buildToolsVersion "26.0.0"
 
         defaultConfig {
-            minSdkVersion.apiLevel 19
+            minSdkVersion.apiLevel 24
             targetSdkVersion.apiLevel 24
             versionCode 1
             versionName "1.0"
@@ -37,9 +37,9 @@ model {
 }
 
 dependencies {
-    compile 'com.google.android.exoplayer:exoplayer:r2.5.1'
-    compile 'com.google.android.exoplayer:extension-gvr:r2.4.0'
+    compile 'com.google.android.exoplayer:exoplayer:2.6.1'
+    compile 'com.google.android.exoplayer:extension-gvr:2.6.1'
 
-    compile 'com.google.vr:sdk-base:1.120.0'
-    compile 'com.google.vr:sdk-common:1.120.0'
+    compile 'com.google.vr:sdk-base:1.130.0'
+    compile 'com.google.vr:sdk-common:1.130.0'
 }

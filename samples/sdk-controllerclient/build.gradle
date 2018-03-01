@@ -37,6 +37,6 @@ model {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-base:1.120.0'
-    compile 'com.google.vr:sdk-controller:1.120.0'
+    compile 'com.google.vr:sdk-base:1.130.0'
+    compile 'com.google.vr:sdk-controller:1.130.0'
 }

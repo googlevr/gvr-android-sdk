@@ -402,7 +402,7 @@ public class TreasureHuntActivity extends GvrActivity implements GvrView.StereoR
       reader.close();
       return sb.toString();
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e(TAG, "Failed to load text file: " + e);
     }
     return null;
   }

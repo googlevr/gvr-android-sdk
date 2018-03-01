@@ -40,7 +40,7 @@ import javax.microedition.khronos.opengles.GL10;
 /**
  * Renders a GL scene in a non-VR Activity that is affected by phone orientation and touch input.
  *
- * <p>The two input components are the TYPE_ROTATION_VECTOR Sensor and a TouchListener. The GL
+ * <p>The two input components are the TYPE_GAME_ROTATION_VECTOR Sensor and a TouchListener. The GL
  * renderer combines these two inputs to render a scene with the appropriate camera orientation.
  *
  * <p>The primary complexity in this class is related to the various rotations. It is important to
@@ -81,8 +81,11 @@ public final class MonoscopicView extends GLSurfaceView {
 
     // Configure sensors and touch.
     sensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
-    // TYPE_ROTATION_VECTOR is the easiest sensor since it handles all the complex math for fusion.
-    orientationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+    // TYPE_GAME_ROTATION_VECTOR is the easiest sensor since it handles all the complex math for
+    // fusion. It's used instead of TYPE_ROTATION_VECTOR since the latter uses the mangetometer on
+    // devices. When used indoors, the magnetometer can take some time to settle depending on the
+    // device and amount of metal in the environment.
+    orientationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
     phoneOrientationListener = new PhoneOrientationListener();
 
     touchTracker = new TouchTracker(renderer);
