@@ -189,6 +189,7 @@ public class VrVideoActivity extends GvrActivity {
       launch2dActivity();
     } else {
       // This should contain a VR UI to handle the user declining the exit request.
+      Log.e(TAG, "Declining the exit request isn't implemented in this sample.");
     }
   }
 

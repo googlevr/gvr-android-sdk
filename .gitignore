@@ -2,9 +2,11 @@
 *.iml
 .idea/
 
-# Gradle configuration.
+# Gradle build.
+.externalNativeBuild/
 .gradle/
 build/
+libraries/jni
 
 # User configuration.
 local.properties

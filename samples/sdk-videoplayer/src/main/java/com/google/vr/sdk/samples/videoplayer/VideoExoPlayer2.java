@@ -198,6 +198,11 @@ public class VideoExoPlayer2 implements Player.EventListener {
     return buildDataSourceFactory(useBandwidthMeter ? BANDWIDTH_METER : null);
   }
 
+  private DataSource.Factory buildDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
+    return new DefaultDataSourceFactory(
+        context, bandwidthMeter, buildHttpDataSourceFactory(bandwidthMeter));
+  }
+
   /**
    * Returns a new HttpDataSource factory.
    *
@@ -207,6 +212,10 @@ public class VideoExoPlayer2 implements Player.EventListener {
    */
   private HttpDataSource.Factory buildHttpDataSourceFactory(boolean useBandwidthMeter) {
     return buildHttpDataSourceFactory(useBandwidthMeter ? BANDWIDTH_METER : null);
+  }
+
+  private HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
+    return new DefaultHttpDataSourceFactory(userAgent, bandwidthMeter);
   }
 
   private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(
@@ -249,15 +258,6 @@ public class VideoExoPlayer2 implements Player.EventListener {
     }
   }
 
-  private DataSource.Factory buildDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
-    return new DefaultDataSourceFactory(
-        context, bandwidthMeter, buildHttpDataSourceFactory(bandwidthMeter));
-  }
-
-  public HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
-    return new DefaultHttpDataSourceFactory(userAgent, bandwidthMeter);
-  }
-
   private static final class GvrRenderersFactory extends DefaultRenderersFactory {
 
     private final GvrAudioProcessor gvrAudioProcessor;
@@ -279,10 +279,15 @@ public class VideoExoPlayer2 implements Player.EventListener {
   @Override
   public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
     if (playbackState == Player.STATE_ENDED) {
-      DecoderCounters counters = player.getVideoDecoderCounters();
-      counters.ensureUpdated();
-      Log.i(TAG, "Total video frames decoded: " + counters.renderedOutputBufferCount);
+      pause();
+      Log.i(TAG, "Total video frames decoded: " + getRenderedOutputBufferCount());
     }
+  }
+
+  protected int getRenderedOutputBufferCount() {
+    DecoderCounters counters = player.getVideoDecoderCounters();
+    counters.ensureUpdated();
+    return counters.renderedOutputBufferCount;
   }
 
   @Override
@@ -291,24 +296,24 @@ public class VideoExoPlayer2 implements Player.EventListener {
   public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {}
   @Override
   public void onPlayerError(ExoPlaybackException error) {}
-  // Remove when this is part of a stable ExoPlayer release.
-  public void onPositionDiscontinuity() {}
-  // Uncomment when this is part of a stable ExoPlayer release.
-  // @Override
+
+  @Override
   public void onPositionDiscontinuity(int reason) {}
+
   @Override
   public void onRepeatModeChanged(int repeatMode) {}
-  // Uncomment when this is part of a stable ExoPlayer release.
-  // @Override
+
+  @Override
   public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {}
-  // Remove when this is part of a stable ExoPlayer release.
+
+  // Old API.
   public void onTimelineChanged(Timeline timeline, Object manifest) {}
-  // Uncomment when this is part of a stable ExoPlayer release.
-  // @Override
+  // New API.
   public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {}
+
   @Override
   public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {}
-  // Uncomment when this is part of a stable ExoPlayer release
-  // @Override
+
+  @Override
   public void onSeekProcessed() {}
 }

@@ -254,15 +254,17 @@ typedef enum {
 
 /// @}
 
-/// Event data associated with a system-initiated GVR_EVENT_RECENTER event. The
-/// client may wish to handle this event to provide custom recentering logic.
+/// Event data associated with a GVR_EVENT_RECENTER event, which indicates head
+/// tracking recentering. (Controller recentering is signaled separately
+/// through gvr_controller_state_get_recentered().) The client may wish to
+/// handle this event to provide custom recentering logic.
 typedef struct gvr_recenter_event_data {
   int32_t recenter_type;  // gvr_recenter_event_type
   gvr_flags recenter_event_flags;
 
-  /// The new transform that maps from "sensor" space to the recentered "start"
-  /// space. This transform can also be retrieved by querying for the
-  /// GVR_PROPERTY_RECENTER_TRANSFORM property.
+  /// The new transform that maps from headset's "sensor" space to the
+  /// recentered "start" space. This transform can also be retrieved by querying
+  /// for the GVR_PROPERTY_RECENTER_TRANSFORM property.
   gvr_mat4f start_space_from_tracking_space_transform;
 } gvr_recenter_event_data;
 
@@ -635,12 +637,12 @@ typedef enum {
   /// Type: float
   GVR_PROPERTY_TRACKING_FLOOR_HEIGHT = 1,
 
-  /// The current transform that maps from "sensor" space to the recentered
-  /// "start" space. Apps can optionally undo or extend this transform to
-  /// perform custom recentering logic with the returned pose, but all poses
-  /// supplied during frame submission are assumed to be in start space. This
-  /// transform matches the one reported in the most
-  /// recent gvr_recenter_event_data.
+  /// The current transform that maps from headset's "sensor" space to the
+  /// recentered "start" space. Apps can optionally undo or extend this
+  /// transform to perform custom recentering logic with the SDK-provided poses,
+  /// but the SDK assumes poses supplied during frame submission are in start
+  /// space. This transform matches the one reported in the most recent
+  /// gvr_recenter_event_data.
   /// Type: gvr_mat4f
   GVR_PROPERTY_RECENTER_TRANSFORM = 2,
 
@@ -699,7 +701,9 @@ typedef enum {
 
 /// The type of gvr_event.
 typedef enum {
-  /// Notification that a global recentering event has occurred.
+  /// Notification that head tracking has been recentered. (Note that controller
+  /// recentering is signaled separately through
+  /// gvr_controller_state_get_recentered().)
   /// Event data type: gvr_recenter_event_data
   GVR_EVENT_RECENTER = 1,
 

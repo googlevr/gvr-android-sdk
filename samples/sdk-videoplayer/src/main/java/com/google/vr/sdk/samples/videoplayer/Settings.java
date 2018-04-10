@@ -15,9 +15,9 @@ public class Settings {
   private static final String TAG = "Settings";
 
   private static final String LOCAL_PREFERENCE_FILE = "videoplayerPrefs";
-  private static final String USE_DRM_VIDEO_SAMPLE = "use_drm_video_sample";
-  private static final String SHOW_FRAME_RATE_BAR = "show_frame_rate_bar";
-  private static final String VIDEO_LENGTH_SECONDS = "video_length_seconds";
+  public static final String USE_DRM_VIDEO_SAMPLE = "use_drm_video_sample";
+  public static final String SHOW_FRAME_RATE_BAR = "show_frame_rate_bar";
+  public static final String VIDEO_LENGTH_SECONDS = "video_length_seconds";
 
   private final Activity activity;
   // When true, a DRM-protected sample is played back in a protected compositor GL context. When
