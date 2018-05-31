@@ -64,13 +64,13 @@ extern "C" {
 ///         case GVR_GESTURE_SWIPE:
 ///           // Handle swipe gesture.
 ///           break;
-///         case GVR_GESTURE__SCROLL_START:
+///         case GVR_GESTURE_SCROLL_START:
 ///           // Handle the start of a sequence of scroll gestures.
 ///           break;
-///         case GVR_GESTURE__SCROLL_UPDATE:
+///         case GVR_GESTURE_SCROLL_UPDATE:
 ///           // Handle an update in a sequence of scroll gestures.
 ///           break;
-///         case GVR_GESTURE__SCROLL_END:
+///         case GVR_GESTURE_SCROLL_END:
 ///           // Handle the end of a sequence of scroll gestures.
 ///           break;
 ///         default:
@@ -243,13 +243,13 @@ typedef gvr_gesture Gesture;
 ///         case GVR_GESTURE_SWIPE:
 ///           // Handle swipe gesture.
 ///           break;
-///         case GVR_GESTURE__SCROLL_START:
+///         case GVR_GESTURE_SCROLL_START:
 ///           // Handle the start of a sequence of scroll gestures.
 ///           break;
-///         case GVR_GESTURE__SCROLL_UPDATE:
+///         case GVR_GESTURE_SCROLL_UPDATE:
 ///           // Handle an update in a sequence of scroll gestures.
 ///           break;
-///         case GVR_GESTURE__SCROLL_END:
+///         case GVR_GESTURE_SCROLL_END:
 ///           // Handle the end of a sequence of scroll gestures.
 ///           break;
 ///         default:

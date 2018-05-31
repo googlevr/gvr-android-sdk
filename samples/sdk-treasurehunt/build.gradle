@@ -35,6 +35,6 @@ android {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-audio:1.140.0'
-    compile 'com.google.vr:sdk-base:1.140.0'
+    compile 'com.google.vr:sdk-audio:1.150.0'
+    compile 'com.google.vr:sdk-base:1.150.0'
 }
