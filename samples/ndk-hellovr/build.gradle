@@ -1,0 +1,65 @@
+/*
+ * Copyright 2018 Google Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 26
+    defaultConfig {
+        applicationId "com.google.vr.ndk.samples.hellovr"
+        minSdkVersion 19
+        targetSdkVersion 24
+        versionCode 1
+        versionName "1.0"
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=gnu++11"
+                arguments "-DGVR_LIBPATH=${project.rootDir}/libraries/jni",
+                          "-DGVR_INCLUDE=${project.rootDir}/libraries/headers"
+            }
+        }
+        buildTypes {
+            release {
+                minifyEnabled = true
+                proguardFiles.add(file("${project.rootDir}/proguard-gvr.txt"))
+            }
+        }
+        ndk {
+            // This sample builds all architectures by default. Note that if you
+            // only want to build for a specific architecture, you need to
+            // remove the appropriate lines below. You also need to remove the
+            // .so files from the apk using
+            // "packagingOptions {exclude('lib/armeabi-v7a/*')}" in the android
+            // section.
+            abiFilters "arm64-v8a"
+            abiFilters "armeabi-v7a"
+            abiFilters "x86"
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+}
+
+
+dependencies {
+    compile 'com.google.vr:sdk-audio:1.160.0'
+    compile 'com.google.vr:sdk-base:1.160.0'
+}
+
+build.dependsOn(':extractNdk')

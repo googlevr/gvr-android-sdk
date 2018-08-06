@@ -35,13 +35,13 @@ task clean(type: Delete) {
 // The dependencies for NDK builds live inside the .aar files so they need to
 // be extracted before NDK targets can build.
 task extractAudioSo(type: Copy) {
-    from zipTree("${project.rootDir}/libraries/sdk-audio-1.150.0.aar")
+    from zipTree("${project.rootDir}/libraries/sdk-audio-1.160.0.aar")
     into "${project.rootDir}/libraries/"
     include "jni/**/libgvr_audio.so"
 }
 
 task extractGvrSo(type: Copy) {
-    from zipTree("${project.rootDir}/libraries/sdk-base-1.150.0.aar")
+    from zipTree("${project.rootDir}/libraries/sdk-base-1.160.0.aar")
     into "${project.rootDir}/libraries/"
     include "jni/**/libgvr.so"
 }

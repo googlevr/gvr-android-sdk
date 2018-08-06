@@ -51,9 +51,7 @@ public class Utils {
       } while (error != GLES20.GL_NO_ERROR);
 
       if (HALT_ON_GL_ERROR) {
-        RuntimeException e = new RuntimeException("glError " + gluErrorString(lastError));
-        Log.e(TAG, "Exception: ", e);
-        throw e;
+        throw new RuntimeException("glError " + gluErrorString(lastError));
       }
     }
   }

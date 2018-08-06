@@ -37,6 +37,7 @@
 namespace {
 static const float kZNear = 0.01f;
 static const float kZFar = 10.0f;
+static const float kNeckModelFactor = 1.0f;
 
 // For now, to avoid writing a raycasting system, put the reticle closer than
 // any objects.
@@ -490,7 +491,11 @@ void TreasureHuntRenderer::DrawFrame() {
     &viewport_left_,
     &viewport_right_,
   };
-  head_view_ = gvr_api_->GetHeadSpaceFromStartSpaceTransform(target_time);
+  // Note that neck model application is a no-op if the viewer supports 6DoF
+  // head tracking
+  head_view_ = gvr_api_->ApplyNeckModel(
+      gvr_api_->GetHeadSpaceFromStartSpaceTransform(target_time),
+      kNeckModelFactor);
   viewport_list_->SetToRecommendedBufferViewports();
 
   gvr::BufferViewport reticle_viewport = gvr_api_->CreateBufferViewport();
