@@ -40,6 +40,9 @@ extern "C" {
 /// If you are writing C++ code, you might prefer to use the C++ wrapper rather
 /// than implement this C API directly.
 ///
+/// If you are using multiple controllers, you will need to create multiple
+/// gvr_gesture_context objects, one for each controller.
+///
 /// Example API usage:
 ///
 /// Initialization:
@@ -215,6 +218,9 @@ typedef gvr_gesture Gesture;
 /// code in libgvr_gesture.so is a pure C interface. The translation from C++
 /// calls to C calls provided by this wrapper runs entirely in the client's
 /// binary and is compiled by the client's compiler.
+///
+/// If you are using multiple controllers, you will need to create multiple
+/// GestureApi objects, one for each controller.
 ///
 /// Methods in this class are only documented insofar as the C++ wrapping logic
 /// is concerned; for information about the method itself, please refer to the

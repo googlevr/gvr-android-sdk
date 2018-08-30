@@ -211,18 +211,19 @@ public class VideoSceneRenderer implements Renderer {
       Matrix.multiplyMM(eyeFromWorld[eye], 0, eyeFromHead, 0, headFromWorld, 0);
     }
     if (gvrAudioProcessor != null) {
+      // Extract orientation quaternion from the head-from-world matrix.
       float sx = headFromWorld[0];
       float sy = headFromWorld[5];
       float sz = headFromWorld[10];
-      float w = (float) Math.sqrt(Math.max(0.0f, 1.0 + sx + sy + sz)) * 0.5f;
+      float w = (float) Math.sqrt(Math.max(0.0f, 1.0 + sx + sy + sz)) * -0.5f;
       float x = (float) Math.sqrt(Math.max(0.0f, 1.0 + sx - sy - sz)) * 0.5f;
-      float y = (float) Math.sqrt(Math.max(0.0f, 1.0 - sx + sy - sz)) * 0.5f;
+      float y = (float) Math.sqrt(Math.max(0.0f, 1.0 - sx + sy - sz)) * -0.5f;
       float z = (float) Math.sqrt(Math.max(0.0f, 1.0 - sx - sy + sz)) * 0.5f;
       gvrAudioProcessor.updateOrientation(
+          w,
           (headFromWorld[6] - headFromWorld[9] < 0) != (x < 0) ? -x : x,
           (headFromWorld[8] - headFromWorld[2] < 0) != (y < 0) ? -y : y,
-          (headFromWorld[1] - headFromWorld[4] < 0) != (z < 0) ? -z : z,
-          w);
+          (headFromWorld[1] - headFromWorld[4] < 0) != (z < 0) ? -z : z);
     }
   }
 

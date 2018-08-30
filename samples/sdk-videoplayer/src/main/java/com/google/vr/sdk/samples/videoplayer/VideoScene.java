@@ -273,13 +273,13 @@ public class VideoScene {
    * This needs to be called every time the GL context is re-created. There is no release
    * counterpart for now, since GL resources are automatically cleaned up when the GL context
    * is destroyed.
-   * 
+   *
    * @param context Android activity context used to load the resources.
    */
   public void prepareGLResources(Context context) {
     resources.prepare(context);
   }
-  
+
   /**
    * Manages all GL resources used by video scenes. Only one copy of these resources is needed
    * for all VideoScene instances.
@@ -341,7 +341,7 @@ public class VideoScene {
       if (spriteProgram == 0) {
         throw new RuntimeException("Could not create sprite program");
       }
-  
+
       // Prepare vertex data.
       ByteBuffer vertices = ByteBuffer.allocateDirect(VERTEX_DATA.length * FLOAT_SIZE_BYTES)
                                 .order(ByteOrder.nativeOrder());
@@ -350,7 +350,7 @@ public class VideoScene {
       vertexPositions.position(VERTEX_DATA_POS_OFFSET);
       vertexUVs = vertices.asFloatBuffer();
       vertexUVs.position(VERTEX_DATA_UV_OFFSET);
-  
+
       // Load the texture to be shown instead of the video while the latter is initializing.
       int[] textureIds = new int[1];
       GLES20.glGenTextures(1, textureIds, 0);
