@@ -3,8 +3,8 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.google.vr</groupId>
-  <artifactId>sdk-panowidget</artifactId>
-  <version>1.170.0</version>
+  <artifactId>sdk-commonwidget</artifactId>
+  <version>1.180.0</version>
   <packaging>aar</packaging>
 
   <name>Google VR SDK-CommonWidget</name>
@@ -17,9 +17,9 @@
   <dependencies>
     <dependency>
       <groupId>com.google.vr</groupId>
-      <artifactId>sdk-commonwidget</artifactId>
+      <artifactId>sdk-common</artifactId>
       <type>aar</type>
-      <version>1.170.0</version>
+      <version>1.180.0</version>
     </dependency>
   </dependencies>
 </project>

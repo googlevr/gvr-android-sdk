@@ -248,6 +248,11 @@ void gvr_controller_state_update(gvr_controller_context* api,
 /// neutral position, and a matching forward offset should be applied to the
 /// controller position to compensate.
 ///
+/// Note that this method will not generate a simulated position if real
+/// position information is available. Clear the GVR_CONTROLLER_ENABLE_POSITION
+/// option to discard any real position data and force the arm model on systems
+/// with real position data.
+///
 /// When multiple controllers are configured, this arm model will be applied to
 /// the controller at the given controller_index, if one exists.
 ///
@@ -426,10 +431,17 @@ gvr_vec3f gvr_controller_state_get_accel(const gvr_controller_state* state);
 /// @return True iff the user is touching the controller, false otherwise.
 bool gvr_controller_state_is_touching(const gvr_controller_state* state);
 
-/// If the user is touching the touchpad, this returns the touch position in
-/// normalized coordinates, where (0,0) is the top-left of the touchpad
-/// and (1,1) is the bottom right. If the user is not touching the touchpad,
-/// then this is the position of the last touch.
+/// Returns the normalized coordinates on the touchpad. Each value ranges from
+/// [0, 1]. The x value of the touch point aligns with the controller's x-axis,
+/// which points to the right of the controller, and the y value aligns with the
+/// controller's z-axis. See
+/// https://developers.google.com/vr/reference/gvr-ndk-controller#controller_space
+/// for more information.
+/// This is initially (0, 0) until an event is received.
+/// If the user is not touching the touchpad, then this is the position of the
+/// last touch.
+/// On circular touchpad hardware, the valid touch area will be a 0.5 radius
+/// circle centered around (0.5, 0.5).
 ///
 /// @param state The controller state to get the touchpad touch position from.
 /// @return The touchpad touch position in normalized coordinates iff the user
@@ -536,7 +548,11 @@ int64_t gvr_controller_state_get_last_touch_timestamp(
 int64_t gvr_controller_state_get_last_button_timestamp(
     const gvr_controller_state* state);
 
-/// Current (latest) controller simulated position for use with an elbow model.
+/// Current (latest) controller position. This may be real position data from
+/// the controller if GVR_CONTROLLER_ENABLE_POSITION is used and real data is
+/// available, or it may be simulated data if GVR_CONTROLLER_ENABLE_ARM_MODEL
+/// and gvr_controller_apply_arm_model() are used. For more information,
+/// see gvr_controller_apply_arm_model().
 ///
 /// @param state The controller state to get the latest simulated position from.
 /// @return The current controller simulated position (intended for use with an

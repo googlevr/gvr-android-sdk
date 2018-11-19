@@ -326,11 +326,12 @@ enum {
   GVR_CONTROLLER_ENABLE_GESTURES = 1 << 4,
   /// Indicates that controller pose prediction should be enabled.
   GVR_CONTROLLER_ENABLE_POSE_PREDICTION = 1 << 5,
-  /// Indicates that controller position data should be reported.
+  /// Indicates that system should provide real position data if available.
   GVR_CONTROLLER_ENABLE_POSITION = 1 << 6,
   /// Indicates that controller battery data should be reported.
   GVR_CONTROLLER_ENABLE_BATTERY = 1 << 7,
-  /// Indicates that elbow model should be enabled.
+  /// Indicates that elbow model should be enabled if the system doesn't provide
+  /// real position data.
   GVR_CONTROLLER_ENABLE_ARM_MODEL = 1 << 8,
 };
 
@@ -380,8 +381,8 @@ typedef enum {
   GVR_CONTROLLER_BUTTON_APP = 3,
   GVR_CONTROLLER_BUTTON_VOLUME_UP = 4,
   GVR_CONTROLLER_BUTTON_VOLUME_DOWN = 5,
-  GVR_CONTROLLER_BUTTON_RESERVED0 = 6,
-  GVR_CONTROLLER_BUTTON_RESERVED1 = 7,
+  GVR_CONTROLLER_BUTTON_TRIGGER = 6,
+  GVR_CONTROLLER_BUTTON_GRIP = 7,
   GVR_CONTROLLER_BUTTON_RESERVED2 = 8,
 
   /// Note: there are 8 buttons on the controller, but the state arrays have
@@ -854,6 +855,12 @@ const ControllerButton kControllerButtonVolumeUp =
     static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_VOLUME_UP);
 const ControllerButton kControllerButtonVolumeDown =
     static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_VOLUME_DOWN);
+const ControllerButton kControllerButtonTrigger =
+    static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_TRIGGER);
+const ControllerButton kControllerButtonGrip =
+    static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_GRIP);
+const ControllerButton kControllerButtonReserved2 =
+    static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_RESERVED2);
 const ControllerButton kControllerButtonCount =
     static_cast<ControllerButton>(GVR_CONTROLLER_BUTTON_COUNT);
 
@@ -971,7 +978,6 @@ class AudioApi;
 class BufferSpec;
 class ControllerApi;
 class ControllerState;
-class Frame;
 class GvrApi;
 class BufferViewport;
 class BufferViewportList;

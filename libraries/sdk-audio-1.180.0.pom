@@ -4,7 +4,7 @@
 
   <groupId>com.google.vr</groupId>
   <artifactId>sdk-audio</artifactId>
-  <version>1.170.0</version>
+  <version>1.180.0</version>
   <packaging>aar</packaging>
 
   <name>Google VR SDK-Audio</name>
@@ -19,7 +19,7 @@
       <groupId>com.google.vr</groupId>
       <artifactId>sdk-base</artifactId>
       <type>aar</type>
-      <version>1.170.0</version>
+      <version>1.180.0</version>
     </dependency>
   </dependencies>
 </project>

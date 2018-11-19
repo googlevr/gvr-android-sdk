@@ -2,6 +2,9 @@
 
 The **controller** directory contains a model of the Daydream Controller.
 
+The **6dof_controller** directory contains a model of the Daydream 6DOF
+Controller.
+
 The **panoramas** directory contains sample 360 images. See the javadoc for
 **sdk-simplepanowidget**'s **SimpleVrPanoramaActivity** class for information on
 how to view these videos.
