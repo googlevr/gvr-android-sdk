@@ -26,10 +26,20 @@ namespace {
 // https://developers.google.com/vr/distribute/daydream/design-requirements#UX-C1
 const gvr::Mat4f kLaserRotation =
     GetAxisAngleRotationMatrix({1.0f, 0.0f, 0.0f}, -.262f);
+
 const gvr::Mat4f k6dofLaserTransform =
     MatrixMul(GetTranslationMatrix({0.0f, -0.007f, -0.12f}), kLaserRotation);
+constexpr gvr::Rectf k6dofBatteryUVRect({0.1079f, 0.1914f, 0.5391f, 0.5601f});
+constexpr gvr::Vec2f k6dofBatteryChargeOffset({0.0f, -0.4072f});
+constexpr gvr::Vec2f k6dofBatteryCriticalOffset({0.0f, -0.3862f});
+
 const gvr::Mat4f k3dofLaserTransform =
     MatrixMul(GetTranslationMatrix({0.0f, -0.007f, -0.055f}), kLaserRotation);
+constexpr gvr::Rectf k3dofBatteryUVRect({0.06641f, 0.2539f, 0.2304f, 0.25f});
+constexpr gvr::Vec2f k3dofBatteryChargeOffset({0.0f, -0.1797f});
+constexpr gvr::Vec2f k3dofBatteryCriticalOffset({0.0f, -0.2207f});
+
+constexpr float kBatteryCriticalPercentage = 0.25f;
 
 }  // unnamed namespace
 
@@ -98,6 +108,11 @@ void Controller::Update(gvr::ControllerApi* gvr_controller_api,
   } else {
     laser_transform_ = MatrixMul(transform_, k6dofLaserTransform);
   }
+
+  // Calculate the battery charge.
+  float level = static_cast<float>(state_.GetBatteryLevel());
+  battery_charge_ =
+      level / static_cast<float>(GVR_CONTROLLER_BATTERY_LEVEL_FULL);
 }
 
 Controllers::Controllers(gvr::GvrApi* gvr_api)
@@ -109,10 +124,10 @@ Controllers::Controllers(gvr::GvrApi* gvr_api)
 
 void Controllers::Initialize(JNIEnv* env, jobject java_asset_mgr,
                              AAssetManager* asset_mgr) {
-  shader_.Link();
+  controller_shader_.Link();
 
-  GLuint position_attrib = shader_.GetPositionAttribute();
-  GLuint uv_attrib = shader_.GetUVAttribute();
+  GLuint position_attrib = controller_shader_.GetPositionAttribute();
+  GLuint uv_attrib = controller_shader_.GetUVAttribute();
 
   HELLOVRBETA_CHECK(controller_6dof_mesh_.Initialize(
       asset_mgr, "Controller6DOF.obj", position_attrib, uv_attrib));
@@ -122,6 +137,12 @@ void Controllers::Initialize(JNIEnv* env, jobject java_asset_mgr,
       asset_mgr, "Controller3DOF.obj", position_attrib, uv_attrib));
   HELLOVRBETA_CHECK(controller_3dof_texture_.Initialize(
       env, java_asset_mgr, "Controller3DOFDiffuse.png"));
+
+  laser_shader_.Link();
+
+  position_attrib = laser_shader_.GetPositionAttribute();
+  uv_attrib = laser_shader_.GetUVAttribute();
+
   HELLOVRBETA_CHECK(laser_mesh_.Initialize(asset_mgr, "Laser.obj",
                                            position_attrib, uv_attrib));
   HELLOVRBETA_CHECK(
@@ -189,10 +210,33 @@ void Controllers::Update(
   }
 }
 
+void Controllers::UpdateBatteryUniforms(const Controller& controller) const {
+  // UV Rectangle in the texture that surrounds the battery indicator.
+  gvr::Rectf uv_rect = {};
+  // UV offset to move the UV rectangle to either the charge or critical icons.
+  gvr::Vec2f offset = {};
+  float charge = controller.GetBatteryCharge();
+
+  // If the battery level is zero, it's unknown.
+  if (controller.GetType() == GVR_BETA_CONTROLLER_CONFIGURATION_6DOF) {
+    uv_rect = k6dofBatteryUVRect;
+    offset = charge < kBatteryCriticalPercentage ? k6dofBatteryCriticalOffset
+                                                 : k6dofBatteryChargeOffset;
+  } else {
+    uv_rect = k3dofBatteryUVRect;
+    offset = charge < kBatteryCriticalPercentage ? k3dofBatteryCriticalOffset
+                                                 : k3dofBatteryChargeOffset;
+  }
+
+  if (charge > 0.0) {
+    uv_rect.right = Lerp(uv_rect.left, uv_rect.right, charge);
+  }
+  controller_shader_.SetBatteryOffset(offset);
+  controller_shader_.SetBatteryUVRect(uv_rect);
+}
+
 void Controllers::Draw(const gvr::Mat4f view[2],
                        const gvr::Mat4f view_projection[2]) const {
-  shader_.Use();
-
   for (const auto& controller : controllers_) {
     // Don't draw controllers that are out of tracking FOV.
     if (controller.IsOutOfFov()) {
@@ -201,9 +245,11 @@ void Controllers::Draw(const gvr::Mat4f view[2],
 
     const gvr::Mat4f& model_matrix = controller.GetTransform();
 
-    shader_.SetModelViewProjection(model_matrix, view_projection);
+    controller_shader_.Use();
+    UpdateBatteryUniforms(controller);
+    controller_shader_.SetModelViewProjection(model_matrix, view_projection);
     // Show that tracking has failed by setting making it transparent.
-    shader_.SetAlpha(controller.IsTracking() ? 1.0f : 0.25f);
+    controller_shader_.SetAlpha(controller.IsTracking() ? 1.0f : 0.25f);
 
     if (controller.GetType() == GVR_BETA_CONTROLLER_CONFIGURATION_6DOF) {
       controller_6dof_texture_.Bind();
@@ -230,7 +276,8 @@ void Controllers::Draw(const gvr::Mat4f view[2],
           laser_matrix, GetAxisAngleRotationMatrix({0.0f, 0.0f, 1.0f}, -angle));
 
       // Transform the laser using left eye, Ideally this should be per eye.
-      shader_.SetModelViewProjection(laser_model, view_projection);
+      laser_shader_.Use();
+      laser_shader_.SetModelViewProjection(laser_model, view_projection);
 
       // Use premultiplied alpha.
       glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -254,6 +301,12 @@ void Controllers::ForEachLaser(
 
       callback(controller.GetIndex(), origin, direction);
     }
+  }
+}
+
+void Controllers::SetControllerForLaser(int index) {
+  for (int i = 0; i < static_cast<int>(controllers_.size()); ++i) {
+    controllers_[i].SetIsLaserShown(index == i);
   }
 }
 

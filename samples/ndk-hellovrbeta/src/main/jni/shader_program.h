@@ -55,9 +55,13 @@ class ControllerShaderProgram : public TexturedShaderProgram {
   void Link();
 
   void SetAlpha(float alpha) const;
+  void SetBatteryUVRect(const gvr::Rectf& uv) const;
+  void SetBatteryOffset(const gvr::Vec2f& offset) const;
 
  protected:
   GLuint alpha_;
+  GLuint battery_uv_rect_;
+  GLuint battery_offset_;
 };
 
 }  // namespace ndk_hello_vr_beta

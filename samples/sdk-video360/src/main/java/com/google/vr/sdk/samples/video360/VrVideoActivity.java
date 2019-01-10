@@ -298,7 +298,7 @@ public class VrVideoActivity extends GvrActivity {
 
       renderer.scene.setControllerOrientation(controller.orientation);
 
-      if (!touchpadDown && controller.clickButtonState) {
+      if (!touchpadDown && (controller.clickButtonState || controller.triggerButtonState)) {
         renderer.scene.handleClick();
       }
 
@@ -306,7 +306,7 @@ public class VrVideoActivity extends GvrActivity {
         renderer.scene.toggleUi();
       }
 
-      touchpadDown = controller.clickButtonState;
+      touchpadDown = controller.clickButtonState || controller.triggerButtonState;
       appButtonDown = controller.appButtonState;
     }
   }

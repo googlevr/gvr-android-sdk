@@ -210,8 +210,6 @@ public class HelloVrBetaActivity extends Activity {
 
   private native long nativeOnDrawFrame(long nativeApp);
 
-  private native void nativeOnTriggerEvent(long nativeApp);
-
   private native void nativeOnPause(long nativeApp);
 
   private native void nativeOnResume(long nativeApp);

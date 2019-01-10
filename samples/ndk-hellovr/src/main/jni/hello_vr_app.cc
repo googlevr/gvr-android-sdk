@@ -36,13 +36,15 @@ static constexpr float kNeckModelFactor = 1.0f;
 // The objects are about 1 meter in radius, so the min/max target distance are
 // set so that the objects are always within the room (which is about 5 meters
 // across) and the reticle is always closer than any objects.
-static constexpr float kMinTargetDistance = 3.0f;
+static constexpr float kMinTargetDistance = 2.5f;
 static constexpr float kMaxTargetDistance = 3.5f;
+static constexpr float kMinTargetHeight = 0.5f;
+static constexpr float kMaxTargetHeight = kMinTargetHeight + 3.0f;
 static constexpr float kReticleDistance = 1.9f;
 
 // Depth of the ground plane, in meters. If this (and other distances)
 // are too far, 6DOF tracking will have no visible effect.
-static constexpr float kDefaultFloorHeight = -2.0f;
+static constexpr float kDefaultFloorHeight = -1.7f;
 static constexpr float kSafetyRingHeightDelta = 0.01f;
 
 static constexpr float kDefaultSafetyRingRadius = 1.0f;
@@ -54,12 +56,6 @@ static constexpr uint64_t kPredictionTimeWithoutVsyncNanos = 50000000;
 // Angle threshold for determining whether the controller is pointing at the
 // object.
 static constexpr float kAngleLimit = 0.2f;
-
-// The maximum yaw and pitch of the target object, in degrees. After hiding the
-// target, its yaw will be within [-kMaxYaw, kMaxYaw] and pitch will be within
-// [-kMaxPitch, kMaxPitch].
-static constexpr float kMaxYaw = 100.0f;
-static constexpr float kMaxPitch = 25.0f;
 
 // Sound file in APK assets.
 static constexpr const char* kObjectSoundFile = "audio/HelloVR_Loop.ogg";
@@ -312,11 +308,8 @@ void HelloVrApp::OnSurfaceCreated(JNIEnv* env) {
   CheckGLError("Reticle program params");
 
   // Target object first appears directly in front of user.
-  model_target_ = {
-      {{1.0f, 0.0f, 0.0f, 0.0f},
-       {0.0f, cosf(M_PI / 4.0f), -sinf(M_PI / 4.0f), 0.0f},
-       {0.0f, sinf(M_PI / 4.0f), cosf(M_PI / 4.0f), -kMinTargetDistance},
-       {0.0f, 0.0f, 0.0f, 1.0f}}};
+  model_target_ = GetTranslationMatrix({0.0f, 1.5f, -kMinTargetDistance});
+
   const float rs = 0.04f;  // Reticle scale.
   model_reticle_ = {{{rs, 0.0f, 0.0f, 0.0f},
                      {0.0f, rs, 0.0f, 0.0f},
@@ -401,9 +394,10 @@ void HelloVrApp::ProcessControllerInput() {
              gvr_controller_state_.GetConnectionState()));
   }
 
-  // Trigger click event if app/click button is clicked.
+  // Trigger click event if app/click/trigger button is clicked.
   if (gvr_controller_state_.GetButtonDown(GVR_CONTROLLER_BUTTON_APP) ||
-      gvr_controller_state_.GetButtonDown(GVR_CONTROLLER_BUTTON_CLICK)) {
+      gvr_controller_state_.GetButtonDown(GVR_CONTROLLER_BUTTON_CLICK) ||
+      gvr_controller_state_.GetButtonDown(GVR_CONTROLLER_BUTTON_TRIGGER)) {
     OnTriggerEvent();
   }
 }
@@ -436,6 +430,17 @@ void HelloVrApp::OnDrawFrame() {
   head_view_ = gvr_api_->ApplyNeckModel(
       gvr_api_->GetHeadSpaceFromStartSpaceTransform(target_time),
       kNeckModelFactor);
+
+  gvr::Value floor_height;
+  // This may change when the floor height changes so it's computed every frame.
+  float ground_y = gvr_api_->GetCurrentProperties().Get(
+                       GVR_PROPERTY_TRACKING_FLOOR_HEIGHT, &floor_height)
+                       ? floor_height.f
+                       : kDefaultFloorHeight;
+  // Incorporate the floor height into the head_view
+  head_view_ =
+      MatrixMul(head_view_, GetTranslationMatrix({0.0f, ground_y, 0.0f}));
+
   viewport_list_->SetToRecommendedBufferViewports();
 
   gvr::BufferViewport reticle_viewport = gvr_api_->CreateBufferViewport();
@@ -448,16 +453,6 @@ void HelloVrApp::OnDrawFrame() {
   reticle_viewport.SetSourceUv(fullscreen);
   UpdateReticlePosition();
 
-  gvr::Value floor_height;
-  // This may change when the floor height changes so it's computed every frame.
-  float ground_y = gvr_api_->GetCurrentProperties().Get(
-                       GVR_PROPERTY_TRACKING_FLOOR_HEIGHT, &floor_height)
-                       ? floor_height.f
-                       : kDefaultFloorHeight;
-  gvr::Mat4f model_room = {{{1.0f, 0.0f, 0.0f, 0.0f},
-                            {0.0f, 1.0f, 0.0f, ground_y},
-                            {0.0f, 0.0f, 1.0f, 0.0f},
-                            {0.0f, 0.0f, 0.0f, 1.0f}}};
   gvr::Mat4f modelview_room[2];
 
   gvr::Value cylinder_radius;
@@ -494,7 +489,7 @@ void HelloVrApp::OnDrawFrame() {
     viewport_list_->SetBufferViewport(2 + eye, reticle_viewport);
 
     modelview_target_[eye] = MatrixMul(eye_views[eye], model_target_);
-    modelview_room[eye] = MatrixMul(eye_views[eye], model_room);
+    modelview_room[eye] = eye_views[eye];
     modelview_safety_ring[eye] = MatrixMul(eye_views[eye], model_safety_ring);
 
     const gvr_rectf fov = viewport[eye]->GetSourceFov();
@@ -695,40 +690,19 @@ void HelloVrApp::DrawReticle() {
 
 void HelloVrApp::HideTarget() {
   cur_target_object_ = RandomUniformInt(kTargetMeshCount);
-  const float yaw =
-      (RandomUniformFloat() - 0.5) * 2.0f * kMaxYaw * M_PI / 180.0f;
-  const float pitch =
-      (RandomUniformFloat() - 0.5) * 2.0f * kMaxPitch * M_PI / 180.0f;
-  const float target_object_distance =
-      RandomUniformFloat() * (kMaxTargetDistance - kMinTargetDistance) +
-      kMinTargetDistance;
 
-  model_target_ = {
-      {{1.0f, 0.0f, 0.0f, 0.0f},
-       {0.0f, cosf(M_PI / 4.0f), -sinf(M_PI / 4.0f), 0.0f},
-       {0.0f, sinf(M_PI / 4.0f), cosf(M_PI / 4.0f), -target_object_distance},
-       {0.0f, 0.0f, 0.0f, 1.0f}}};
+  float angle = RandomUniformFloat(-M_PI, M_PI);
+  float distance = RandomUniformFloat(kMinTargetDistance, kMaxTargetDistance);
+  float height = RandomUniformFloat(kMinTargetHeight, kMaxTargetHeight);
+  gvr::Vec3f target_position = {std::cos(angle) * distance, height,
+                                std::sin(angle) * distance};
 
-  std::array<float, 4> target_position = {
-      model_target_.m[0][3], model_target_.m[1][3], model_target_.m[2][3], 1.f};
-
-  const gvr::Mat4f rotation_matrix = {{{cosf(yaw), 0.f, -sinf(yaw), 0.f},
-                                       {0.f, 1.f, 0.f, 0.f},
-                                       {sinf(yaw), 0.f, cosf(yaw), 0.f},
-                                       {0.f, 0.f, 0.f, 1.f}}};
-  target_position = MatrixVectorMul(rotation_matrix, target_position);
-  model_target_ = MatrixMul(rotation_matrix, model_target_);
-
-  target_position[1] = tanf(pitch) * target_object_distance;
-
-  model_target_.m[0][3] = target_position[0];
-  model_target_.m[1][3] = target_position[1];
-  model_target_.m[2][3] = target_position[2];
+  model_target_ = GetTranslationMatrix(target_position);
 
   if (audio_source_id_ >= 0) {
-    gvr_audio_api_->SetSoundObjectPosition(audio_source_id_, target_position[0],
-                                           target_position[1],
-                                           target_position[2]);
+    gvr_audio_api_->SetSoundObjectPosition(audio_source_id_, target_position.x,
+                                           target_position.y,
+                                           target_position.z);
   }
 }
 

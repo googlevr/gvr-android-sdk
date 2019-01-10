@@ -4,8 +4,6 @@
 // Explicitly load all the SDK samples using their full path.
 include ':samples:sdk-controllerclient'
 include ':samples:sdk-hellovr'
-include ':samples:sdk-simplepanowidget'
-include ':samples:sdk-simplevideowidget'
 include ':samples:sdk-video360'
 include ':samples:sdk-videoplayer'
 

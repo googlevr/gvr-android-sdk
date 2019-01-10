@@ -35,9 +35,9 @@ android {
 }
 
 dependencies {
-    compile 'com.google.android.exoplayer:exoplayer:2.6.1'
-    compile 'com.google.android.exoplayer:extension-gvr:2.6.1'
+    implementation 'com.google.android.exoplayer:exoplayer:2.6.1'
+    implementation 'com.google.android.exoplayer:extension-gvr:2.6.1'
 
-    compile 'com.google.vr:sdk-base:1.180.0'
-    compile 'com.google.vr:sdk-common:1.180.0'
+    implementation 'com.google.vr:sdk-audio:1.190.0'
+    implementation 'com.google.vr:sdk-base:1.190.0'
 }

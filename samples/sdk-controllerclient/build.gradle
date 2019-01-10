@@ -35,6 +35,5 @@ android {
 }
 
 dependencies {
-    compile 'com.google.vr:sdk-base:1.180.0'
-    compile 'com.google.vr:sdk-controller:1.180.0'
+    implementation 'com.google.vr:sdk-base:1.190.0'
 }

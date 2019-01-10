@@ -55,6 +55,9 @@ class Controller {
   bool IsTracking() const { return is_tracking_; }
   bool IsOutOfFov() const { return is_out_of_fov_; }
   bool IsLaserShown() const { return IsTracking() && show_laser_; }
+  void SetIsLaserShown(bool show_laser) { show_laser_ = show_laser; }
+
+  float GetBatteryCharge() const { return battery_charge_; }
 
  private:
   void UpdateTrackingStatus();
@@ -68,6 +71,7 @@ class Controller {
   bool show_laser_;
   bool is_tracking_;
   bool is_out_of_fov_;
+  float battery_charge_;
 };
 
 /**
@@ -91,6 +95,8 @@ class Controllers {
       const std::function<void(int, const gvr::Vec3f& origin,
                                const gvr::Vec3f& direction)>& callback);
 
+  void SetControllerForLaser(int index);
+
   void SetOnClickDown(std::function<void(int)> on_click);
   void SetOnClickUp(std::function<void(int)> on_click);
   void SetOnTriggerDown(std::function<void(int)> on_trigger);
@@ -103,9 +109,12 @@ class Controllers {
   Controller& GetController(int index) { return controllers_[index]; }
 
  private:
+  void UpdateBatteryUniforms(const Controller& controller) const;
+
   std::unique_ptr<gvr::ControllerApi> gvr_controller_api_;
 
-  ControllerShaderProgram shader_;
+  ControllerShaderProgram controller_shader_;
+  TexturedShaderProgram laser_shader_;
   TexturedMesh controller_6dof_mesh_;
   Texture controller_6dof_texture_;
   TexturedMesh controller_3dof_mesh_;

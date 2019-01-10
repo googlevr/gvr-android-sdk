@@ -55,6 +55,11 @@ inline gvr::Vec3f operator*(const gvr::Vec3f& l, float scale) {
   return {l.x * scale, l.y * scale, l.z * scale};
 }
 
+template <typename T>
+T Lerp(const T& a, const T& b, float t) {
+  return a + (b - a) * t;
+}
+
 // Flattens a pair of mat4's into an array of 32 floats, useful when feeding
 // uniform values to OpenGL for multiview.
 std::array<float, 32> MatrixPairToGLArray(const gvr::Mat4f matrix[]);

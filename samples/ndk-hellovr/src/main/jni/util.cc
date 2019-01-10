@@ -350,6 +350,13 @@ std::array<float, 4> MatrixVectorMul(const gvr::Mat4f& matrix,
   return result;
 }
 
+gvr::Mat4f GetTranslationMatrix(const gvr::Vec3f& translation) {
+  return {{{1.0f, 0.0f, 0.0f, translation.x},
+           {0.0f, 1.0f, 0.0f, translation.y},
+           {0.0f, 0.0f, 1.0f, translation.z},
+           {0.0f, 0.0f, 0.0f, 1.0f}}};
+}
+
 gvr::Mat4f MatrixMul(const gvr::Mat4f& matrix1, const gvr::Mat4f& matrix2) {
   gvr::Mat4f result;
   for (int i = 0; i < 4; ++i) {
@@ -418,11 +425,11 @@ gvr::Recti CalculatePixelSpaceRect(const gvr::Sizei& texture_size,
   return result;
 }
 
-float RandomUniformFloat() {
+float RandomUniformFloat(float min, float max) {
   static std::random_device random_device;
   static std::mt19937 random_generator(random_device());
   static std::uniform_real_distribution<float> random_distribution(0, 1);
-  return random_distribution(random_generator);
+  return random_distribution(random_generator) * (max - min) + min;
 }
 
 int RandomUniformInt(int max_val) {

@@ -53,6 +53,9 @@ std::array<float, 32> MatrixPairToGLArray(const gvr::Mat4f matrix[]);
 std::array<float, 4> MatrixVectorMul(const gvr::Mat4f& matrix,
                                      const std::array<float, 4>& vec);
 
+// Construct a translation matrix.
+gvr::Mat4f GetTranslationMatrix(const gvr::Vec3f& translation);
+
 // Multiplies two matrices.
 gvr::Mat4f MatrixMul(const gvr::Mat4f& matrix1, const gvr::Mat4f& matrix2);
 
@@ -73,8 +76,8 @@ gvr::Rectf ModulateRect(const gvr::Rectf& rect, float width, float height);
 gvr::Recti CalculatePixelSpaceRect(const gvr::Sizei& texture_size,
                                    const gvr::Rectf& texture_rect);
 
-// Generates a random floating point number between 0 and 1.
-float RandomUniformFloat();
+// Generates a random floating point number between |min| and |max|.
+float RandomUniformFloat(float min, float max);
 
 // Generates a random integer in the range [0, max_val).
 int RandomUniformInt(int max_val);

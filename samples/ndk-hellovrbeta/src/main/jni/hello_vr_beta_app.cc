@@ -226,6 +226,9 @@ void HelloVrBetaApp::OnDrawFrame() {
 void HelloVrBetaApp::OnTrigger(int controller_index) {
   if (!target_held_ && controller_index == controller_on_target_index_) {
     GenerateNewTargetPosition();
+  } else {
+    // The last controller that had a trigger pressed shows the laser.
+    controllers_.SetControllerForLaser(controller_index);
   }
 }
 

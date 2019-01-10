@@ -26,7 +26,7 @@ namespace {
 // Simple shaders to render .obj files without any lighting.
 constexpr const char* kTexturedMeshVertexShader =
     // The following shader is for multiview rendering.
-    R"glsl(#version 300 es
+    R"glsl(#version 320 es
     #extension GL_OVR_multiview2 : enable
 
     layout(num_views=2) in;
@@ -43,7 +43,7 @@ constexpr const char* kTexturedMeshVertexShader =
     })glsl";
 
 constexpr const char* kTexturedMeshFragmentShader =
-    R"glsl(#version 300 es
+    R"glsl(#version 320 es
 
     precision mediump float;
     in vec2 v_UV;
@@ -57,18 +57,32 @@ constexpr const char* kTexturedMeshFragmentShader =
     })glsl";
 
 constexpr const char* kTexturedMeshAlphaFragmentShader =
-    R"glsl(#version 300 es
+    R"glsl(#version 320 es
 
     precision mediump float;
     in vec2 v_UV;
     out vec4 FragColor;
-    uniform float a_Alpha;
     uniform sampler2D u_Texture;
+    uniform float a_Alpha;
+    uniform vec4 a_BatteryUVRect;
+    uniform vec2 a_BatteryOffset;
+
+    // Returns true if point is inside box.
+    // Expects rect as xmin, ymin, xmax, ymax.
+    bool inRect(vec2 pt, vec4 rect) {
+      vec2 result = step(rect.xy, pt) - (vec2(1.0, 1.0) - step(pt, rect.zw));
+      return result.x * result.y > 0.5;
+    }
 
     void main() {
-      // The y coordinate of this sample's textures is reversed compared to
-      // what OpenGL expects, so we invert the y coordinate.
-      FragColor = texture(u_Texture, vec2(v_UV.x, 1.0 - v_UV.y));
+      // Explicitly choose a mip level to work around incorrect mip level at
+      // boundary of rectangle.
+      vec2 texture_coord = fwidth(v_UV) * vec2(textureSize(u_Texture, 0));
+      float mip_level = log2(max((texture_coord.x + texture_coord.y)*0.5, 1.0));
+      // If the uv is in the battery section, offset to the battery indicator.
+      FragColor = inRect(v_UV, a_BatteryUVRect) ?
+            textureLod(u_Texture, v_UV + a_BatteryOffset, mip_level) :
+            textureLod(u_Texture, v_UV, mip_level);
       FragColor.a = FragColor.a * a_Alpha;
     })glsl";
 
@@ -146,11 +160,21 @@ void ControllerShaderProgram::Link() {
                       kTexturedMeshAlphaFragmentShader);
   mode_view_projection_ = glGetUniformLocation(program_, "u_MVP");
   alpha_ = glGetUniformLocation(program_, "a_Alpha");
+  battery_uv_rect_ = glGetUniformLocation(program_, "a_BatteryUVRect");
+  battery_offset_ = glGetUniformLocation(program_, "a_BatteryOffset");
   SetAlpha(1.0f);
 }
 
 void ControllerShaderProgram::SetAlpha(float alpha) const {
   glUniform1f(alpha_, alpha);
+}
+
+void ControllerShaderProgram::SetBatteryUVRect(const gvr::Rectf& uv) const {
+  glUniform4f(battery_uv_rect_, uv.left, uv.bottom, uv.right, uv.top);
+}
+
+void ControllerShaderProgram::SetBatteryOffset(const gvr::Vec2f& offset) const {
+  glUniform2f(battery_offset_, offset.x, offset.y);
 }
 
 }  // namespace ndk_hello_vr_beta

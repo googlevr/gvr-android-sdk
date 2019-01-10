@@ -2,13 +2,7 @@
 
 Enables Daydream and Cardboard app development on Android.
 
-Copyright (c) 2018 Google Inc.
-
-See [https://developers.google.com/terms/](https://developers.google.com/terms/)
-for the **Google APIs Terms of Service** which cover this SDK. The code in
-`samples` is covered by the Apache 2 `LICENSE` file in that directory, and the
-files in `assets` are covered by Creative Commons `LICENSE` file in that
-directory.
+Copyright (c) 2016 Google Inc. All rights reserved.
 
 For updates, known issues, and upgrade instructions, see the
 [release-notes](//github.com/googlevr/gvr-android-sdk/releases).
