@@ -6,7 +6,8 @@
 .externalNativeBuild/
 .gradle/
 build/
-libraries/
+libraries/headers
+libraries/jni
 
 # User configuration.
 local.properties
