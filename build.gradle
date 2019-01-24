@@ -19,10 +19,6 @@ allprojects {
         google()
         // For GVR components, the official source of the .aars is JCenter.
         jcenter()
-        maven {
-            // For Android support library components.
-            url "https://maven.google.com"
-        }
         // You can also use a local Maven repository if desired.
         mavenLocal()
     }
