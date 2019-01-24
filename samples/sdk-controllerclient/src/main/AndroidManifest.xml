@@ -3,7 +3,7 @@
   package="com.google.vr.sdk.samples.controllerclient"
   android:versionCode="181016016"
   android:versionName="1.190.0">
-  <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="24" />
+
   <uses-feature android:glEsVersion="0x00030002" android:required="true" />
 
   <application

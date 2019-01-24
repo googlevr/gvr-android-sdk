@@ -6,7 +6,6 @@
 
     <!-- The video API works on Daydream-ready devices with Asynchronous
          Reprojection on Android N+ and OpenGL ES 3+ -->
-    <uses-sdk android:minSdkVersion="24" android:targetSdkVersion="24" />
     <uses-feature android:glEsVersion="0x00030002" android:required="true" />
 
     <!-- Required by the app to stream video. -->
