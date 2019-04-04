@@ -50,16 +50,24 @@ class TexturedShaderProgram : public ShaderProgram {
   GLuint mode_view_projection_;
 };
 
-class ControllerShaderProgram : public TexturedShaderProgram {
+class TexturedAlphaShaderProgram : public TexturedShaderProgram {
  public:
   void Link();
 
   void SetAlpha(float alpha) const;
+
+ protected:
+  GLuint alpha_;
+};
+
+class ControllerShaderProgram : public TexturedAlphaShaderProgram {
+ public:
+  void Link();
+
   void SetBatteryUVRect(const gvr::Rectf& uv) const;
   void SetBatteryOffset(const gvr::Vec2f& offset) const;
 
  protected:
-  GLuint alpha_;
   GLuint battery_uv_rect_;
   GLuint battery_offset_;
 };

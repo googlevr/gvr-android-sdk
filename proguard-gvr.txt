@@ -8,8 +8,14 @@
     native <methods>;
 }
 
-# The SDK configuration class member names are useful for debugging client logs.
--keepclasseswithmembernames,allowoptimization class com.google.common.logging.nano.Vr$VREvent$SdkConfigurationParams** {
+# The SDK configuration protos use reflection.
+-keep class com.google.vr.sdk.proto.** {
+    *;
+}
+-keep class com.google.common.logging.Vr$VREvent$SdkConfigurationParams** {
+    *;
+}
+-keep class com.google.common.logging.nano.Vr$VREvent$SdkConfigurationParams** {
     *;
 }
 

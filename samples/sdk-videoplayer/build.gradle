@@ -18,9 +18,14 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 26
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     defaultConfig {
         minSdkVersion 24
-        targetSdkVersion 24
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
     }
@@ -35,9 +40,9 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.android.exoplayer:exoplayer:2.6.1'
-    implementation 'com.google.android.exoplayer:extension-gvr:2.6.1'
+    implementation 'com.google.android.exoplayer:exoplayer:2.9.0'
+    implementation 'com.google.android.exoplayer:extension-gvr:2.9.0'
 
-    implementation 'com.google.vr:sdk-audio:1.190.0'
-    implementation 'com.google.vr:sdk-base:1.190.0'
+    implementation 'com.google.vr:sdk-audio:1.200.0'
+    implementation 'com.google.vr:sdk-base:1.200.0'
 }

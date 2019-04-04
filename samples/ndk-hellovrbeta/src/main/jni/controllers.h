@@ -25,9 +25,9 @@
 
 #include "shader_program.h"  // NOLINT
 #include "util.h"  // NOLINT
-#include "vr/gvr/capi/include/gvr.h"
 #include "vr/gvr/capi/include/gvr_beta.h"
 #include "vr/gvr/capi/include/gvr_controller.h"
+#include "vr/gvr/capi/include/gvr_gesture.h"
 #include "vr/gvr/capi/include/gvr_types.h"
 
 namespace ndk_hello_vr_beta {
@@ -37,7 +37,8 @@ namespace ndk_hello_vr_beta {
  */
 class Controller {
  public:
-  Controller(gvr::ControllerApi* gvr_controller_api, int32_t index);
+  Controller(gvr::ControllerApi* gvr_controller_api, int32_t index,
+             gvr::ControllerHandedness handedness);
 
   void Update(gvr::ControllerApi* gvr_controller_api_,
               const gvr::Mat4f& head_space_from_start_space_transform,
@@ -59,12 +60,16 @@ class Controller {
 
   float GetBatteryCharge() const { return battery_charge_; }
 
+  bool GetSwipeGesture(gvr_gesture_direction* swipe_direction) const;
+
  private:
   void UpdateTrackingStatus();
 
   int32_t index_;
+  gvr::ControllerHandedness handedness_;
   gvr_beta_controller_configuration_type type_;
   gvr::ControllerState state_;
+  gvr::GestureApi gesture_api_;
   gvr::Vec3f position_;
   gvr::Mat4f transform_;
   gvr::Mat4f laser_transform_;
@@ -105,12 +110,15 @@ class Controllers {
   void SetOnGripUp(std::function<void(int)> on_grip);
   void SetOnAppButtonDown(std::function<void(int)> on_app_button);
   void SetOnAppButtonUp(std::function<void(int)> on_app_button);
+  void SetOnSwipe(std::function<void(int, gvr_gesture_direction)> on_swipe);
 
   Controller& GetController(int index) { return controllers_[index]; }
 
  private:
   void UpdateBatteryUniforms(const Controller& controller) const;
+  void ReconnectIfRequired();
 
+  gvr::GvrApi* gvr_api_;
   std::unique_ptr<gvr::ControllerApi> gvr_controller_api_;
 
   ControllerShaderProgram controller_shader_;
@@ -132,6 +140,7 @@ class Controllers {
   std::function<void(int index)> on_grip_up_;
   std::function<void(int index)> on_app_button_down_;
   std::function<void(int index)> on_app_button_up_;
+  std::function<void(int index, gvr_gesture_direction direction)> on_swipe_;
 };
 
 }  // namespace ndk_hello_vr_beta

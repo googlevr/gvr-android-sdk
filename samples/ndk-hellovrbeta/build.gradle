@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
     defaultConfig {
         applicationId "com.google.vr.ndk.samples.hellovrbeta"
-        minSdkVersion 19
-        targetSdkVersion 24
+        minSdkVersion 26
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
         externalNativeBuild {
@@ -58,7 +58,7 @@ android {
 
 
 dependencies {
-    implementation 'com.google.vr:sdk-base:1.190.0'
+    implementation 'com.google.vr:sdk-base:1.200.0'
 }
 
 build.dependsOn(':extractNdk')

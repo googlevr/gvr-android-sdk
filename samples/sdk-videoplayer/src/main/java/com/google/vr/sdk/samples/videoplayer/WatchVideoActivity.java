@@ -29,6 +29,7 @@ import android.view.View;
 import com.google.android.exoplayer2.Format;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 import com.google.vr.ndk.base.AndroidCompat;
+import com.google.vr.ndk.base.BufferViewport;
 import com.google.vr.ndk.base.GvrLayout;
 import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
 
@@ -37,7 +38,7 @@ import com.google.vr.ndk.base.GvrLayout.ExternalSurfaceListener;
  * detailed description of the API, see the <a
  * href="https://developers.google.com/vr/reference/gvr-ndk-rendering#using_video_viewports">ndk
  * walkthrough</a>. This sample supports DRM and unprotected video playback, configured in {@link
- * Configuration}.
+ * Settings}.
  *
  * <p>The Surface for video output is acquired from the {@link ExternalSurfaceListener} and set on
  * the video player. For each frame, this sample draws a window (alpha 0) in the scene where video

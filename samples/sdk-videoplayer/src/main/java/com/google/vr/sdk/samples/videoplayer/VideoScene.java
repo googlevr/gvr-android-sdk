@@ -226,7 +226,7 @@ public class VideoScene {
    * seconds, based on the passed DecoderCounters object.
    *
    * @param averagingPeriodInSeconds Compute the average over this many seconds in the past.
-   * @param frameRate Native frame rate of the video.
+   * @param nativeFrameRate Native frame rate of the video.
    * @param counters DecoderCounters object retrieved from the video decoder.
    */
   public void updateVideoFpsFraction(
@@ -244,18 +244,18 @@ public class VideoScene {
     int pastBufferCount = 0;
 
     // Insert the current buffer count into the map for future computations.
-    frameCounts.put(Long.valueOf(nowTime), Integer.valueOf(currentBufferCount));
+    frameCounts.put(nowTime, currentBufferCount);
 
     // Loop over the map, pruning outdated entries and stopping at the first one that is within the
     // cutoff time.
     for (Iterator<Map.Entry<Long, Integer>> iterator = frameCounts.entrySet().iterator();
         iterator.hasNext(); ) {
       Map.Entry<Long, Integer> count = iterator.next();
-      if (count.getKey().longValue() < cutoffTime) {
+      if (count.getKey() < cutoffTime) {
         iterator.remove();
       } else {
-        pastTime = count.getKey().longValue();
-        pastBufferCount = count.getValue().intValue();
+        pastTime = count.getKey();
+        pastBufferCount = count.getValue();
         break;
       }
     }

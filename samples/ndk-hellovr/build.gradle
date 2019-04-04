@@ -21,7 +21,7 @@ android {
     defaultConfig {
         applicationId "com.google.vr.ndk.samples.hellovr"
         minSdkVersion 19
-        targetSdkVersion 24
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
         externalNativeBuild {
@@ -57,7 +57,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.vr:sdk-base:1.190.0'
+    implementation 'com.google.vr:sdk-base:1.200.0'
 }
 
 build.dependsOn(':extractNdk')

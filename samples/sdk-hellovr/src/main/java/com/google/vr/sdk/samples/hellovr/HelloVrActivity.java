@@ -20,6 +20,9 @@ import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.os.Bundle;
 import android.util.Log;
+import com.google.vr.ndk.base.Properties;
+import com.google.vr.ndk.base.Properties.PropertyType;
+import com.google.vr.ndk.base.Value;
 import com.google.vr.sdk.audio.GvrAudioEngine;
 import com.google.vr.sdk.base.AndroidCompat;
 import com.google.vr.sdk.base.Eye;
@@ -59,7 +62,7 @@ public class HelloVrActivity extends GvrActivity implements GvrView.StereoRender
   private static final String OBJECT_SOUND_FILE = "audio/HelloVR_Loop.ogg";
   private static final String SUCCESS_SOUND_FILE = "audio/HelloVR_Activation.ogg";
 
-  private static final float FLOOR_HEIGHT = -2.0f;
+  private static final float DEFAULT_FLOOR_HEIGHT = -1.6f;
 
   private static final float ANGLE_LIMIT = 0.2f;
 
@@ -127,6 +130,11 @@ public class HelloVrActivity extends GvrActivity implements GvrView.StereoRender
   private volatile int sourceId = GvrAudioEngine.INVALID_ID;
   private volatile int successSourceId = GvrAudioEngine.INVALID_ID;
 
+  private Properties gvrProperties;
+  // This is an opaque wrapper around an internal GVR property. It is set via Properties and
+  // should be shutdown via a {@link Value#close()} call when no longer needed.
+  private final Value floorHeight = new Value();
+
   /**
    * Sets the view to our GvrView and initializes the transformation matrices we will use
    * to render our scene.
@@ -176,6 +184,7 @@ public class HelloVrActivity extends GvrActivity implements GvrView.StereoRender
     }
 
     setGvrView(gvrView);
+    gvrProperties = gvrView.getGvrApi().getCurrentProperties();
   }
 
   @Override
@@ -193,6 +202,7 @@ public class HelloVrActivity extends GvrActivity implements GvrView.StereoRender
   @Override
   public void onRendererShutdown() {
     Log.i(TAG, "onRendererShutdown");
+    floorHeight.close();
   }
 
   @Override
@@ -222,7 +232,7 @@ public class HelloVrActivity extends GvrActivity implements GvrView.StereoRender
     Util.checkGlError("Object program params");
 
     Matrix.setIdentityM(modelRoom, 0);
-    Matrix.translateM(modelRoom, 0, 0, FLOOR_HEIGHT, 0);
+    Matrix.translateM(modelRoom, 0, 0, DEFAULT_FLOOR_HEIGHT, 0);
 
     // Avoid any delays during start-up due to decoding of sound files.
     new Thread(
@@ -294,6 +304,12 @@ public class HelloVrActivity extends GvrActivity implements GvrView.StereoRender
   public void onNewFrame(HeadTransform headTransform) {
     // Build the camera matrix and apply it to the ModelView.
     Matrix.setLookAtM(camera, 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 1.0f, 0.0f);
+
+    if (gvrProperties.get(PropertyType.TRACKING_FLOOR_HEIGHT, floorHeight)) {
+      // The floor height can change each frame when tracking system detects a new floor position.
+      Matrix.setIdentityM(modelRoom, 0);
+      Matrix.translateM(modelRoom, 0, 0, floorHeight.asFloat(), 0);
+    } // else the device doesn't support floor height detection so DEFAULT_FLOOR_HEIGHT is used.
 
     headTransform.getHeadView(headView, 0);
 

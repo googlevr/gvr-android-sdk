@@ -21,42 +21,29 @@ import android.util.Log;
 import android.view.Surface;
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.DefaultRenderersFactory;
-import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.ExoPlayerFactory;
-import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.audio.AudioProcessor;
 import com.google.android.exoplayer2.decoder.DecoderCounters;
 import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
 import com.google.android.exoplayer2.drm.DrmSessionManager;
+import com.google.android.exoplayer2.drm.ExoMediaDrm;
 import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
 import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
 import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
 import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 import com.google.android.exoplayer2.ext.gvr.GvrAudioProcessor;
-import com.google.android.exoplayer2.extractor.DefaultExtractorsFactory;
 import com.google.android.exoplayer2.source.ClippingMediaSource;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.source.dash.DashMediaSource;
-import com.google.android.exoplayer2.source.dash.DefaultDashChunkSource;
 import com.google.android.exoplayer2.source.hls.HlsMediaSource;
-import com.google.android.exoplayer2.source.smoothstreaming.DefaultSsChunkSource;
 import com.google.android.exoplayer2.source.smoothstreaming.SsMediaSource;
-import com.google.android.exoplayer2.trackselection.AdaptiveTrackSelection;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
-import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
-import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
-import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -67,20 +54,21 @@ import java.util.concurrent.TimeUnit;
 public class VideoExoPlayer2 implements Player.EventListener {
 
   private static final String TAG = VideoExoPlayer2.class.getSimpleName();
-  private static final DefaultBandwidthMeter BANDWIDTH_METER = new DefaultBandwidthMeter();
 
   private final Context context;
   private final Settings settings;
-  private final String userAgent;
-  private final DataSource.Factory mediaDataSourceFactory;
+  private final DefaultHttpDataSourceFactory httpDataSourceFactory;
+  private final DefaultDataSourceFactory mediaDataSourceFactory;
   private GvrAudioProcessor gvrAudioProcessor;
   private SimpleExoPlayer player;
+  private ExoMediaDrm<FrameworkMediaCrypto> mediaDrm;
 
   public VideoExoPlayer2(Context context, Settings settings) {
     this.context = context;
     this.settings = settings;
-    userAgent = Util.getUserAgent(context, "VideoExoPlayer");
-    mediaDataSourceFactory = buildDataSourceFactory(true);
+    String userAgent = Util.getUserAgent(context, "VideoExoPlayer");
+    httpDataSourceFactory = new DefaultHttpDataSourceFactory(userAgent);
+    mediaDataSourceFactory = new DefaultDataSourceFactory(context, httpDataSourceFactory);
   }
 
   public void play() {
@@ -147,10 +135,7 @@ public class VideoExoPlayer2 implements Player.EventListener {
     DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
     if (optionalDrmVideoId != null) {
       try {
-        drmSessionManager =
-            buildDrmSessionManager(
-                C.WIDEVINE_UUID,
-                getWidevineTestLicenseUrl(optionalDrmVideoId));
+        mediaDrm = FrameworkMediaDrm.newInstance(C.WIDEVINE_UUID);
       } catch (UnsupportedDrmException e) {
         String errorString =
             e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
@@ -159,16 +144,21 @@ public class VideoExoPlayer2 implements Player.EventListener {
         Log.e(TAG, "Error: " + errorString, e);
         throw e;
       }
+      String licenseUrl = getWidevineTestLicenseUrl(optionalDrmVideoId);
+      HttpMediaDrmCallback drmCallback =
+          new HttpMediaDrmCallback(licenseUrl, httpDataSourceFactory);
+      drmSessionManager =
+          new DefaultDrmSessionManager<>(
+              C.WIDEVINE_UUID, mediaDrm, drmCallback, /* optionalKeyRequestParameters= */ null);
     }
 
-    TrackSelection.Factory videoTrackSelectionFactory =
-        new AdaptiveTrackSelection.Factory(BANDWIDTH_METER);
-    DefaultTrackSelector trackSelector = new DefaultTrackSelector(videoTrackSelectionFactory);
-
     gvrAudioProcessor = new GvrAudioProcessor();
-    player = ExoPlayerFactory.newSimpleInstance(
-        new GvrRenderersFactory(context, drmSessionManager, gvrAudioProcessor),
-        trackSelector);
+    player =
+        ExoPlayerFactory.newSimpleInstance(
+            context,
+            new GvrRenderersFactory(context, gvrAudioProcessor),
+            new DefaultTrackSelector(),
+            drmSessionManager);
     player.addListener(this);
 
     // Auto play the video.
@@ -177,7 +167,14 @@ public class VideoExoPlayer2 implements Player.EventListener {
     MediaSource mediaSource = buildMediaSource(uri);
     if (settings.videoLengthSeconds > 0) {
       long lengthMicroseconds = TimeUnit.SECONDS.toMicros(settings.videoLengthSeconds);
-      mediaSource = new ClippingMediaSource(mediaSource, 0, lengthMicroseconds, false);
+      mediaSource =
+          new ClippingMediaSource(
+              mediaSource,
+              /* startPositionUs= */ 0,
+              lengthMicroseconds,
+              /* enableInitialDiscontinuity= */ false,
+              /* allowDynamicClippingUpdates= */ false,
+              /* relativeToDefaultPosition= */ false);
     }
     // Prepare the player with the source.
     player.prepare(mediaSource);
@@ -194,6 +191,10 @@ public class VideoExoPlayer2 implements Player.EventListener {
       player.release();
       player = null;
       gvrAudioProcessor = null;
+      if (mediaDrm != null) {
+        mediaDrm.release();
+        mediaDrm = null;
+      }
     }
   }
 
@@ -201,74 +202,19 @@ public class VideoExoPlayer2 implements Player.EventListener {
     return "https://proxy.uat.widevine.com/proxy?video_id=" + id + "&provider=widevine_test";
   }
 
-  /**
-   * Returns a new DataSource factory.
-   *
-   * @param useBandwidthMeter Whether to set {@link #BANDWIDTH_METER} as a listener to the new
-   *     DataSource factory.
-   * @return A new DataSource factory.
-   */
-  private DataSource.Factory buildDataSourceFactory(boolean useBandwidthMeter) {
-    return buildDataSourceFactory(useBandwidthMeter ? BANDWIDTH_METER : null);
-  }
-
-  private DataSource.Factory buildDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
-    return new DefaultDataSourceFactory(
-        context, bandwidthMeter, buildHttpDataSourceFactory(bandwidthMeter));
-  }
-
-  /**
-   * Returns a new HttpDataSource factory.
-   *
-   * @param useBandwidthMeter Whether to set {@link #BANDWIDTH_METER} as a listener to the new
-   *     DataSource factory.
-   * @return A new HttpDataSource factory.
-   */
-  private HttpDataSource.Factory buildHttpDataSourceFactory(boolean useBandwidthMeter) {
-    return buildHttpDataSourceFactory(useBandwidthMeter ? BANDWIDTH_METER : null);
-  }
-
-  private HttpDataSource.Factory buildHttpDataSourceFactory(DefaultBandwidthMeter bandwidthMeter) {
-    return new DefaultHttpDataSourceFactory(userAgent, bandwidthMeter);
-  }
-
-  private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(
-      UUID uuid, String licenseUrl) throws UnsupportedDrmException {
-    if (Util.SDK_INT < 18) {
-      return null;
-    }
-    HttpMediaDrmCallback drmCallback =
-        new HttpMediaDrmCallback(licenseUrl, buildHttpDataSourceFactory(false));
-    return new DefaultDrmSessionManager<>(
-        uuid, FrameworkMediaDrm.newInstance(uuid), drmCallback, null, null, null);
-  }
-
   private MediaSource buildMediaSource(Uri uri) {
     int type = Util.inferContentType(uri.getLastPathSegment());
     switch (type) {
       case C.TYPE_SS:
-        return new SsMediaSource(
-            uri,
-            buildDataSourceFactory(false),
-            new DefaultSsChunkSource.Factory(mediaDataSourceFactory),
-            null,
-            null);
+        return new SsMediaSource.Factory(mediaDataSourceFactory).createMediaSource(uri);
       case C.TYPE_DASH:
-        return new DashMediaSource(
-            uri,
-            buildDataSourceFactory(false),
-            new DefaultDashChunkSource.Factory(mediaDataSourceFactory),
-            null,
-            null);
+        return new DashMediaSource.Factory(mediaDataSourceFactory).createMediaSource(uri);
       case C.TYPE_HLS:
-        return new HlsMediaSource(uri, mediaDataSourceFactory, null, null);
+        return new HlsMediaSource.Factory(mediaDataSourceFactory).createMediaSource(uri);
       case C.TYPE_OTHER:
-        return new ExtractorMediaSource(
-            uri, mediaDataSourceFactory, new DefaultExtractorsFactory(), null, null);
+        return new ExtractorMediaSource.Factory(mediaDataSourceFactory).createMediaSource(uri);
       default:
-        {
-          throw new IllegalStateException("Unsupported type: " + type);
-        }
+        throw new IllegalStateException("Unsupported type: " + type);
     }
   }
 
@@ -276,10 +222,8 @@ public class VideoExoPlayer2 implements Player.EventListener {
 
     private final GvrAudioProcessor gvrAudioProcessor;
 
-    private GvrRenderersFactory(Context context,
-        DrmSessionManager<FrameworkMediaCrypto> drmSessionManager,
-        GvrAudioProcessor gvrAudioProcessor) {
-      super(context, drmSessionManager);
+    private GvrRenderersFactory(Context context, GvrAudioProcessor gvrAudioProcessor) {
+      super(context);
       this.gvrAudioProcessor = gvrAudioProcessor;
     }
 
@@ -304,30 +248,4 @@ public class VideoExoPlayer2 implements Player.EventListener {
     return counters.renderedOutputBufferCount;
   }
 
-  @Override
-  public void onLoadingChanged(boolean isLoading) {}
-  @Override
-  public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {}
-  @Override
-  public void onPlayerError(ExoPlaybackException error) {}
-
-  @Override
-  public void onPositionDiscontinuity(int reason) {}
-
-  @Override
-  public void onRepeatModeChanged(int repeatMode) {}
-
-  @Override
-  public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {}
-
-  // Old API.
-  public void onTimelineChanged(Timeline timeline, Object manifest) {}
-  // New API.
-  public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {}
-
-  @Override
-  public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {}
-
-  @Override
-  public void onSeekProcessed() {}
 }

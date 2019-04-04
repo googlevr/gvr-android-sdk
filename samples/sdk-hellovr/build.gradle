@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         minSdkVersion 19
-        targetSdkVersion 24
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
     }
@@ -35,7 +35,7 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.vr:sdk-base:1.190.0'
+    implementation 'com.google.vr:sdk-base:1.200.0'
 
     // Obj - a simple Wavefront OBJ file loader
     // https://github.com/javagl/Obj

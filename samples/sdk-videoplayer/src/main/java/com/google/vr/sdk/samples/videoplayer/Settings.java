@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
+import java.util.Locale;
 
 /**
  * Stores settings which are settable through intent extras and persisted in a
@@ -79,13 +80,17 @@ public class Settings {
     pref.putBoolean(USE_DRM_VIDEO_SAMPLE, useDrmVideoSample)
         .putBoolean(SHOW_FRAME_RATE_BAR, showFrameRateBar)
         .putInt(VIDEO_LENGTH_SECONDS, videoLengthSeconds)
-        .commit();
+        .apply();
   }
 
   public void dump() {
-    String settings = String.format(
-        "Use DRM video [%b], Show framerate bar [%b], Playback duration (seconds) [%d]",
-        useDrmVideoSample, showFrameRateBar, videoLengthSeconds);
+    String settings =
+        String.format(
+            Locale.US,
+            "Use DRM video [%b], Show framerate bar [%b], Playback duration (seconds) [%d]",
+            useDrmVideoSample,
+            showFrameRateBar,
+            videoLengthSeconds);
     Log.d(TAG, "Video settings: " + settings);
   }
 }

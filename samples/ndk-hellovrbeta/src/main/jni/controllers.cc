@@ -43,8 +43,10 @@ constexpr float kBatteryCriticalPercentage = 0.25f;
 
 }  // unnamed namespace
 
-Controller::Controller(gvr::ControllerApi* gvr_controller_api, int32_t index)
+Controller::Controller(gvr::ControllerApi* gvr_controller_api, int32_t index,
+                       gvr::ControllerHandedness handedness)
     : index_(index),
+      handedness_(handedness),
       type_(GVR_BETA_CONTROLLER_CONFIGURATION_UNKNOWN),
       show_laser_(index == 0),
       is_tracking_(true),
@@ -72,21 +74,14 @@ void Controller::Update(gvr::ControllerApi* gvr_controller_api,
                         float floor_offset) {
   const int old_status = state_.GetApiStatus();
   const int old_connection_state = state_.GetConnectionState();
+
+  // Apply an arm model for 3DOF controllers, 6DOF controllers will ignore this.
+  gvr_controller_api->ApplyArmModel(
+      index_, handedness_, gvr::kArmModelBehaviorFollowGazeWith6DOFPosition,
+      head_space_from_start_space_transform);
+
   // Read current controller state.
   state_.Update(*gvr_controller_api, index_);
-
-  gvr::Vec3f head_position = {};
-  // If this controller is 3DOF, apply an arm model and offset.
-  if (type_ == GVR_BETA_CONTROLLER_CONFIGURATION_3DOF) {
-    gvr_controller_api->ApplyArmModel(index_, gvr::kControllerRightHanded,
-                                      GVR_ARM_MODEL_SYNC_GAZE,
-                                      head_space_from_start_space_transform);
-    head_position =
-        PositionFromHeadSpace(head_space_from_start_space_transform);
-  } else {
-    // Incorporate the floor offset into the controller position.
-    head_position.y = -floor_offset;
-  }
 
   UpdateTrackingStatus();
 
@@ -99,7 +94,11 @@ void Controller::Update(gvr::ControllerApi* gvr_controller_api,
         gvr_controller_connection_state_to_string(state_.GetConnectionState()));
   }
 
-  position_ = state_.GetPosition() + head_position;
+  position_ = state_.GetPosition();
+  // ApplyArmModel updates the floor offset in the 3DOF case, but not 6DOF.
+  if (type_ == GVR_BETA_CONTROLLER_CONFIGURATION_6DOF) {
+    position_.y -= floor_offset;
+  }
 
   transform_ = MatrixMul(GetTranslationMatrix(GetPosition()),
                          ControllerQuatToMatrix(GetOrientation()));
@@ -113,13 +112,30 @@ void Controller::Update(gvr::ControllerApi* gvr_controller_api,
   float level = static_cast<float>(state_.GetBatteryLevel());
   battery_charge_ =
       level / static_cast<float>(GVR_CONTROLLER_BATTERY_LEVEL_FULL);
+
+  // Track any gestures made since the last update:
+  gesture_api_.Update(&state_);
+}
+
+bool Controller::GetSwipeGesture(gvr_gesture_direction* swipe_direction) const {
+  // Get the number of detected gestures
+  int num_gestures = gesture_api_.GetGestureCount();
+  for (int i = 0; i < num_gestures; ++i) {
+    const gvr::Gesture* gesture = gesture_api_.GetGesture(i);
+    if (gesture_api_.GetGestureType(gesture) == GVR_GESTURE_SWIPE) {
+      *swipe_direction = gesture_api_.GetGestureDirection(gesture);
+      return true;
+    }
+  }
+  return false;
 }
 
 Controllers::Controllers(gvr::GvrApi* gvr_api)
-    : gvr_controller_api_(new gvr::ControllerApi) {
+    : gvr_api_(gvr_api), gvr_controller_api_(new gvr::ControllerApi) {
   HELLOVRBETA_CHECK(gvr_controller_api_->Init(
-      gvr::ControllerApi::DefaultOptions() | GVR_CONTROLLER_ENABLE_ARM_MODEL,
-      gvr_api->cobj()));
+      gvr::ControllerApi::DefaultOptions() | GVR_CONTROLLER_ENABLE_ARM_MODEL |
+          GVR_CONTROLLER_ENABLE_GYRO,
+      gvr_api_->cobj()));
 }
 
 void Controllers::Initialize(JNIEnv* env, jobject java_asset_mgr,
@@ -158,17 +174,27 @@ void Controllers::Pause() {
 
 void Controllers::Resume() { gvr_controller_api_->Resume(); }
 
+void Controllers::ReconnectIfRequired() {
+  int32_t controller_count = gvr_controller_api_->GetControllerCount();
+  if (controller_count != controllers_.size()) {
+    const gvr::UserPrefs user_prefs = gvr_api_->GetUserPrefs();
+    const int32_t dominant_hand =
+        gvr_user_prefs_get_controller_handedness(user_prefs.cobj());
+    controllers_.clear();
+    for (int32_t i = 0; i < controller_count; ++i) {
+      gvr::ControllerHandedness handedness =
+          static_cast<gvr::ControllerHandedness>(i == 0 ? dominant_hand
+                                                        : !dominant_hand);
+      controllers_.push_back(
+          Controller(gvr_controller_api_.get(), i, handedness));
+    }
+  }
+}
+
 void Controllers::Update(
     const gvr::Mat4f& head_space_from_start_space_transform,
     float floor_offset) {
-  // Check to see if we've lost or gained a new controller.
-  int32_t controller_count = gvr_controller_api_->GetControllerCount();
-  if (controller_count != controllers_.size()) {
-    controllers_.clear();
-    for (int32_t i = 0; i < controller_count; ++i) {
-      controllers_.push_back(Controller(gvr_controller_api_.get(), i));
-    }
-  }
+  ReconnectIfRequired();
 
   for (auto& controller : controllers_) {
     controller.Update(gvr_controller_api_.get(),
@@ -206,6 +232,11 @@ void Controllers::Update(
     if (on_trigger_up_ &&
         controller.GetState().GetButtonUp(GVR_CONTROLLER_BUTTON_TRIGGER)) {
       on_trigger_up_(controller.GetIndex());
+    }
+
+    gvr_gesture_direction gesture_direction;
+    if (on_swipe_ && controller.GetSwipeGesture(&gesture_direction)) {
+      on_swipe_(controller.GetIndex(), gesture_direction);
     }
   }
 }
@@ -343,6 +374,11 @@ void Controllers::SetOnAppButtonDown(
 void Controllers::SetOnAppButtonUp(
     std::function<void(int index)> on_app_button_up) {
   on_app_button_up_ = std::move(on_app_button_up);
+}
+
+void Controllers::SetOnSwipe(
+    std::function<void(int, gvr_gesture_direction)> on_swipe) {
+  on_swipe_ = std::move(on_swipe);
 }
 
 }  // namespace ndk_hello_vr_beta

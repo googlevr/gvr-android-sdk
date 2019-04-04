@@ -131,6 +131,14 @@ class HelloVrBetaApp {
    */
   void OnReleaseTarget(int controller_index);
 
+  /**
+   * Controller touchpad is swiped.
+   */
+  void OnSwipe(int controller_index, gvr_gesture_direction direction);
+
+  bool IsSeeThroughAvailable() const;
+  void UpdateSeeThroughSettings();
+
   void SetTargetPosition(const gvr::Vec3f& position);
   float GetFloorOffset();
 
@@ -141,8 +149,17 @@ class HelloVrBetaApp {
   std::unique_ptr<gvr::BufferViewportList> viewport_list_;
   std::array<gvr::BufferViewport, 2> viewports_;
   std::unique_ptr<gvr::SwapChain> swapchain_;
-  Controllers controllers_;
 
+  gvr_beta_see_through_config* see_through_config_;
+  enum SeeThroughMode {
+    SHOW_SEE_THROUGH,              // Do not render room.
+    SHOW_TRANSLUCENT_SEE_THROUGH,  // Render room translucently.
+    NO_SEE_THROUGH                 // Turn off see-through and render room.
+  };
+  int see_through_mode_;
+  int see_through_effect_;
+
+  Controllers controllers_;
   int controller_on_target_index_;
   bool target_held_;
 
@@ -153,6 +170,7 @@ class HelloVrBetaApp {
   Texture target_object_selected_texture_;
 
   TexturedShaderProgram shader_;
+  TexturedAlphaShaderProgram alpha_shader_;
 
   gvr::Mat4f model_target_;
   gvr::Sizei render_size_;

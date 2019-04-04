@@ -21,11 +21,8 @@ import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.util.Log;
-
 import java.io.IOException;
 import java.io.InputStream;
-
-import javax.microedition.khronos.egl.EGL10;
 
 /**
  * Utility class for working with GL.
@@ -41,36 +38,16 @@ public class GLUtil {
    * @param tag The tag to use when logging.
    * @param op The name of the GL function called before calling checkGlError
    */
-
   public static void checkGlError(String tag, String op) {
+    int lastError = GLES20.GL_NO_ERROR;
     int error;
     while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
       Log.e(tag, op + ": glError " + error);
-      throw new RuntimeException(op + ": glError " + error);
+      lastError = error;
     }
-  }
-
-  /**
-   * Checks EGL state for errors and log a message when an error is encountered. Should be
-   * called regularly after calls to EGL functions to help with debugging.
-   *
-   * @param egl An EGL object.
-   * @param tag The tag to use when logging.
-   * @param op The name of the EGL function called before calling checkGlError
-   */
-   public static void checkEGLError(EGL10 egl, String tag, String op) {
-    int error;
-    while ((error = egl.eglGetError()) != EGL10.EGL_SUCCESS) {
-      Log.e(tag, op + ": eglError " + error);
+    if (lastError != GLES20.GL_NO_ERROR) {
+      throw new RuntimeException(op + ": glError " + lastError);
     }
-  }
-
-  /**
-   * Clears all GL errors.
-   */
-  public static void clearGLErrors() {
-    int error;
-    while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {}
   }
 
   /**

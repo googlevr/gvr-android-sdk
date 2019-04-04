@@ -62,6 +62,9 @@ HelloVrBetaApp::HelloVrBetaApp(JNIEnv* env, jobject asset_mgr_obj,
       gvr_audio_api_(std::move(gvr_audio_api)),
       viewports_{gvr_api_->CreateBufferViewport(),
                  gvr_api_->CreateBufferViewport()},
+      see_through_config_(gvr_beta_see_through_config_create(gvr_context)),
+      see_through_mode_(SHOW_SEE_THROUGH),
+      see_through_effect_(GVR_BETA_SEE_THROUGH_CAMERA_MODE_RAW_IMAGE),
       controllers_(gvr_api_.get()),
       controller_on_target_index_(-1),
       target_held_(false),
@@ -83,6 +86,10 @@ HelloVrBetaApp::HelloVrBetaApp(JNIEnv* env, jobject asset_mgr_obj,
       [this](int controller_index) { OnGrabTarget(controller_index); });
   controllers_.SetOnGripUp(
       [this](int controller_index) { OnReleaseTarget(controller_index); });
+  controllers_.SetOnSwipe(
+      [this](int controller_index, gvr_gesture_direction direction) {
+        OnSwipe(controller_index, direction);
+      });
 }
 
 HelloVrBetaApp::~HelloVrBetaApp() {
@@ -97,19 +104,25 @@ void HelloVrBetaApp::OnSurfaceCreated(JNIEnv* env) {
 
   HELLOVRBETA_CHECK(gvr_api_->IsFeatureSupported(GVR_FEATURE_MULTIVIEW));
 
+  // Initialize the see-through settings.
+  UpdateSeeThroughSettings();
+
   shader_.Link();
+  alpha_shader_.Link();
 
   CheckGLError("Obj program");
 
   GLuint position_param = shader_.GetPositionAttribute();
   GLuint uv_param = shader_.GetUVAttribute();
+  GLuint alpha_position_param = alpha_shader_.GetPositionAttribute();
+  GLuint alpha_uv_param = alpha_shader_.GetUVAttribute();
 
   CheckGLError("Obj program params");
 
   controllers_.Initialize(env, java_asset_mgr_, asset_mgr_);
 
-  HELLOVRBETA_CHECK(
-      room_.Initialize(asset_mgr_, "CubeRoom.obj", position_param, uv_param));
+  HELLOVRBETA_CHECK(room_.Initialize(asset_mgr_, "CubeRoom.obj",
+                                     alpha_position_param, alpha_uv_param));
   HELLOVRBETA_CHECK(room_texture_.Initialize(env, java_asset_mgr_,
                                              "CubeRoom_BakedDiffuse.png"));
   HELLOVRBETA_CHECK(target_object_mesh_.Initialize(asset_mgr_, "TriSphere.obj",
@@ -134,7 +147,7 @@ void HelloVrBetaApp::OnSurfaceCreated(JNIEnv* env) {
   specs[0].SetSamples(2);
 
   // With multiview, the distortion buffer is a texture array with two layers
-  // whose width is half the display width.
+  // whose width is half the offscreen render width.
   gvr::Sizei half_size = {render_size_.width / 2, render_size_.height};
   specs[0].SetMultiviewLayers(2);
   specs[0].SetSize(half_size);
@@ -244,6 +257,34 @@ void HelloVrBetaApp::OnReleaseTarget(int controller_index) {
   }
 }
 
+void HelloVrBetaApp::OnSwipe(int controller_index,
+                             gvr_gesture_direction direction) {
+  switch (direction) {
+    case GVR_GESTURE_DIRECTION_LEFT:
+      --see_through_mode_;
+      // If see_through_mode_ is too low, loop back to the last mode.
+      if (see_through_mode_ < SHOW_SEE_THROUGH) {
+        see_through_mode_ = NO_SEE_THROUGH;
+      }
+      break;
+    case GVR_GESTURE_DIRECTION_RIGHT:
+      ++see_through_mode_;
+      // If see_through_mode_ is too high, loop back to the first mode.
+      if (see_through_mode_ > NO_SEE_THROUGH) {
+        see_through_mode_ = SHOW_SEE_THROUGH;
+      }
+      break;
+    case GVR_GESTURE_DIRECTION_DOWN:
+    case GVR_GESTURE_DIRECTION_UP:
+      see_through_effect_ =
+          (see_through_effect_ == GVR_BETA_SEE_THROUGH_CAMERA_MODE_RAW_IMAGE)
+              ? GVR_BETA_SEE_THROUGH_CAMERA_MODE_TONEMAPPED
+              : GVR_BETA_SEE_THROUGH_CAMERA_MODE_RAW_IMAGE;
+      break;
+  }
+  UpdateSeeThroughSettings();
+}
+
 void HelloVrBetaApp::OnPause() {
   gvr_api_->PauseTracking();
   gvr_audio_api_->Pause();
@@ -257,14 +298,71 @@ void HelloVrBetaApp::OnResume() {
   controllers_.Resume();
 }
 
+bool HelloVrBetaApp::IsSeeThroughAvailable() const {
+  const int32_t see_through_feature = GVR_BETA_FEATURE_SEE_THROUGH;
+  if (!gvr_api_->IsFeatureSupported(see_through_feature)) {
+    return false;
+  }
+
+  if (gvr_api_->GetUserPrefs().IsFeatureEnabled(see_through_feature)) {
+    return true;
+  }
+
+  // Ask the user to turn on see-through. This is does not block.
+  gvr_api_->RequestFeatures(/*required_features=*/nullptr,
+                            /*required_count=*/0, &see_through_feature,
+                            /*optional_count=*/1,
+                            /*on_complete_activity=*/nullptr);
+
+  // Even if see-through is enabled through the feature request, see-through is
+  // still not available since turning on see-through requires a reboot.
+  return false;
+}
+
+void HelloVrBetaApp::UpdateSeeThroughSettings() {
+  // If trying to show pass through, but it is not available, return.
+  if (!IsSeeThroughAvailable()) {
+    see_through_mode_ = NO_SEE_THROUGH;
+    return;
+  }
+
+  // We have 3 see-through modes, if the modes are SHOW_SEE_THROUGH or
+  // SHOW_TRANSLUCENT_SEE_THROUGH, we need to set turn on see-through in gvr.
+  // When we use SHOW_TRANSLUCENT_SEE_THROUGH, the room will be rendered
+  // translucently. If see-through is enabled, see_through_effect_
+  // determines if we use the raw camera image, or if we render the tone mapped
+  // camera image.
+  int camera_mode = GVR_BETA_SEE_THROUGH_CAMERA_MODE_DISABLED;
+  int scene_type = GVR_BETA_SEE_THROUGH_SCENE_TYPE_VIRTUAL_SCENE;
+
+  switch (see_through_mode_) {
+    case SHOW_SEE_THROUGH:
+    case SHOW_TRANSLUCENT_SEE_THROUGH:
+      camera_mode = see_through_effect_;
+      // If see-through is on, we also set the scene type to augmented scene.
+      // This will alter the head pose to match the see-through's camera
+      // position which could be offset from the eye.
+      scene_type = GVR_BETA_SEE_THROUGH_SCENE_TYPE_AUGMENTED_SCENE;
+      break;
+    case NO_SEE_THROUGH:
+      break;
+  }
+  gvr_beta_see_through_config_set_camera_mode(see_through_config_, camera_mode);
+  gvr_beta_see_through_config_set_scene_type(see_through_config_, scene_type);
+  gvr_beta_set_see_through_config(context_, see_through_config_);
+}
+
 /**
  * Draws a frame for a particular view.
  */
 void HelloVrBetaApp::DrawWorld(const gvr::Mat4f view[2],
                                const gvr::Mat4f view_projection[2]) {
   glViewport(0, 0, render_size_.width / 2, render_size_.height);
+  if (see_through_mode_ != SHOW_SEE_THROUGH) {
+    DrawRoom(view_projection);
+  }
+
   DrawTarget(view_projection);
-  DrawRoom(view_projection);
   controllers_.Draw(view, view_projection);
 }
 
@@ -296,8 +394,10 @@ void HelloVrBetaApp::DrawTarget(const gvr::Mat4f view_projection[2]) {
 void HelloVrBetaApp::DrawRoom(const gvr::Mat4f view_projection[2]) {
   gvr::Mat4f model_room = GetTranslationMatrix({0.0f, 0.0f, 0.0f});
 
-  shader_.Use();
-  shader_.SetModelViewProjection(model_room, view_projection);
+  alpha_shader_.Use();
+  alpha_shader_.SetModelViewProjection(model_room, view_projection);
+  float alpha = see_through_mode_ == SHOW_TRANSLUCENT_SEE_THROUGH ? 0.7f : 1.0f;
+  alpha_shader_.SetAlpha(alpha);
 
   room_texture_.Bind();
   room_.Draw();

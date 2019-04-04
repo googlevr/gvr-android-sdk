@@ -7,7 +7,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.android.tools.build:gradle:3.3.0'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -35,7 +35,7 @@ task clean(type: Delete) {
 // The dependencies for NDK builds live inside the .aar files so they need to
 // be extracted before NDK targets can build.
 task extractNdk(type: Copy)  {
-    from zipTree("${project.rootDir}/libraries/sdk-base-1.190.0.aar")
+    from zipTree("${project.rootDir}/libraries/sdk-base-1.200.0.aar")
     into "${project.rootDir}/libraries/"
     include "headers/vr/gvr/capi/**/*h"
     include "jni/**/libgvr_audio.so"

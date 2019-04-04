@@ -56,6 +56,22 @@ constexpr const char* kTexturedMeshFragmentShader =
       FragColor = texture(u_Texture, vec2(v_UV.x, 1.0 - v_UV.y));
     })glsl";
 
+constexpr const char* kTexturedAlphaMeshFragmentShader =
+    R"glsl(#version 320 es
+
+    precision mediump float;
+    in vec2 v_UV;
+    out vec4 FragColor;
+    uniform sampler2D u_Texture;
+    uniform float a_Alpha;
+
+    void main() {
+      // The y coordinate of this sample's textures is reversed compared to
+      // what OpenGL expects, so we invert the y coordinate.
+      FragColor = texture(u_Texture, vec2(v_UV.x, 1.0 - v_UV.y));
+      FragColor.a = FragColor.a * a_Alpha;
+    })glsl";
+
 constexpr const char* kTexturedMeshAlphaFragmentShader =
     R"glsl(#version 320 es
 
@@ -155,6 +171,17 @@ GLuint TexturedShaderProgram::GetUVAttribute() const {
   return glGetAttribLocation(program_, "a_UV");
 }
 
+void TexturedAlphaShaderProgram::Link() {
+  ShaderProgram::Link(kTexturedMeshVertexShader,
+                      kTexturedAlphaMeshFragmentShader);
+  mode_view_projection_ = glGetUniformLocation(program_, "u_MVP");
+  alpha_ = glGetUniformLocation(program_, "a_Alpha");
+}
+
+void TexturedAlphaShaderProgram::SetAlpha(float alpha) const {
+  glUniform1f(alpha_, alpha);
+}
+
 void ControllerShaderProgram::Link() {
   ShaderProgram::Link(kTexturedMeshVertexShader,
                       kTexturedMeshAlphaFragmentShader);
@@ -163,10 +190,6 @@ void ControllerShaderProgram::Link() {
   battery_uv_rect_ = glGetUniformLocation(program_, "a_BatteryUVRect");
   battery_offset_ = glGetUniformLocation(program_, "a_BatteryOffset");
   SetAlpha(1.0f);
-}
-
-void ControllerShaderProgram::SetAlpha(float alpha) const {
-  glUniform1f(alpha_, alpha);
 }
 
 void ControllerShaderProgram::SetBatteryUVRect(const gvr::Rectf& uv) const {
