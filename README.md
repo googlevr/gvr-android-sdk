@@ -1,3 +1,20 @@
+**November 6, 2019 update**
+
+There's a new open source [Cardboard SDK](//developers.google.com/cardboard) for
+iOS and Android NDK that offers a streamlined API, improved device
+compatibility, and built-in viewer profile QR code scanning.
+
+
+**October 15, 2019 update**
+
+The [Daydream View](//arvr.google.com/daydream/smartphonevr/) VR headset is no
+longer available for purchase. However, you can continue to use this SDK to
+update and [distribute](//developers.google.com/vr/distribute/daydream/) your
+apps to the Google Play Store, and make them available to users in the
+[Daydream](//play.google.com/store/apps/details?id=com.google.android.vr.home)
+app.
+
+
 # Google VR SDK for Android
 
 Enables Daydream and Cardboard app development on Android.
@@ -17,7 +34,7 @@ For first time users, see the
 [Get Started with Google VR on Android](//developers.google.com/vr/android/get-started)
 guide.
 
-SDK releases are availble from the
+SDK releases are available from the
 [releases](//github.com/googlevr/gvr-android-sdk/releases) page.
 
 Please note, we do not accept pull requests.
